@@ -1,0 +1,522 @@
+/**
+ * Billing Library 9.1 API definitions.
+ *
+ * Purchase flow:
+ * 1. connect()
+ * 2. queryProductDetails()
+ * 3. register onPurchasesUpdated()
+ * 4. launchBillingFlow()
+ * 5. verify the purchaseToken on the application server
+ * 6. acknowledgePurchase() or consumePurchase()
+ *
+ * String fields with documented allowed values are validated at runtime. Unsupported values and
+ * invalid field combinations fail with errCode 9011001 (INVALID_ARGUMENT).
+ *
+ * @tutorial https://developer.android.com/google/play/billing/integrate
+ * @tutorial https://developer.android.com/google/play/billing/security
+ * @tutorial https://developer.android.com/google/play/billing/migrate-pbl-latest
+ */
+
+/** Common failure returned by this plugin. */
+export interface TTGoogleIAPBillingFail extends IUniError {
+    /** Stable plugin error: 9011001-9011009 or 9011099. */
+    errCode: number;
+    /** Original BillingClient response code, or null for local validation errors. */
+    billingResponseCode: number | null;
+    /** Purchase-flow sub-response code when supplied by BillingResult, otherwise null. */
+    subResponseCode: number | null;
+    /** Diagnostic message supplied by Billing when available. */
+    debugMessage: string | null;
+}
+
+export type TTGoogleIAPBillingFailCallback = (result: TTGoogleIAPBillingFail) => void;
+export type TTGoogleIAPCompleteCallback = (result: any) => void;
+
+/** A product requested from Billing but not returned successfully. */
+export type TTGoogleIAPUnfetchedProduct = {
+    productId: string;
+    /** "inapp" or "subs". */
+    productType: string;
+    /** Billing status for this individual product: 0, 2, 3, or 4. */
+    statusCode: number;
+};
+
+/** Price of a one-time product or one-time purchase offer. */
+export type TTGoogleIAPOneTimePurchaseOffer = {
+    formattedPrice: string;
+    priceAmountMicros: number;
+    priceCurrencyCode: string;
+    /** Token for this purchase option/offer, or null for a legacy one-time product. */
+    offerToken: string | null;
+    offerId: string | null;
+    purchaseOptionId: string | null;
+    offerTags: string[];
+    /** Non-discounted price in micros when this is a discounted offer. */
+    fullPriceMicros: number | null;
+    /** Display-only discount data. Never use it to calculate the charged price. */
+    discountDisplayInfo: TTGoogleIAPDiscountDisplayInfo | null;
+    validTimeWindow: TTGoogleIAPOfferValidTimeWindow | null;
+    limitedQuantityInfo: TTGoogleIAPLimitedQuantityInfo | null;
+    preorderDetails: TTGoogleIAPPreorderDetails | null;
+    rentalDetails: TTGoogleIAPRentalDetails | null;
+};
+
+export type TTGoogleIAPDiscountAmount = {
+    formattedDiscountAmount: string;
+    discountAmountMicros: number;
+    discountAmountCurrencyCode: string;
+};
+
+export type TTGoogleIAPDiscountDisplayInfo = {
+    discountAmount: TTGoogleIAPDiscountAmount | null;
+    percentageDiscount: number | null;
+};
+
+export type TTGoogleIAPOfferValidTimeWindow = {
+    startTimeMillis: number | null;
+    endTimeMillis: number | null;
+};
+
+export type TTGoogleIAPLimitedQuantityInfo = {
+    maximumQuantity: number;
+    remainingQuantity: number;
+};
+
+export type TTGoogleIAPPreorderDetails = {
+    preorderPresaleEndTimeMillis: number;
+    preorderReleaseTimeMillis: number;
+};
+
+export type TTGoogleIAPRentalDetails = {
+    /** Rental period in ISO 8601 format. */
+    rentalPeriod: string;
+    /** Optional rental expiration period in ISO 8601 format. */
+    rentalExpirationPeriod: string | null;
+};
+
+/** One phase in a subscription pricing plan. */
+export type TTGoogleIAPPricingPhase = {
+    formattedPrice: string;
+    priceAmountMicros: number;
+    priceCurrencyCode: string;
+    /** ISO 8601 period, for example P1W, P1M or P1Y. */
+    billingPeriod: string;
+    billingCycleCount: number;
+    /** 1: infinite recurring, 2: finite recurring, 3: non-recurring. */
+    recurrenceMode: number;
+};
+
+/** Base plan or offer for a subscription product. */
+export type TTGoogleIAPSubscriptionOffer = {
+    basePlanId: string;
+    offerId: string | null;
+    /** Token that must be passed to launchBillingFlow(). */
+    offerToken: string;
+    offerTags: string[];
+    pricingPhases: TTGoogleIAPPricingPhase[];
+    installmentPlan: TTGoogleIAPInstallmentPlan | null;
+};
+
+/** Commitment information for an installment subscription base plan. */
+export type TTGoogleIAPInstallmentPlan = {
+    commitmentPaymentsCount: number;
+    subsequentCommitmentPaymentsCount: number;
+};
+
+/** Serializable ProductDetails returned by Billing. */
+export type TTGoogleIAPProductDetails = {
+    productId: string;
+    /** "inapp" or "subs". */
+    productType: string;
+    title: string;
+    name: string;
+    description: string;
+    /** Time at which this plugin received the native ProductDetails. */
+    queriedAt: number;
+    /** Populated for "inapp" products; otherwise empty. */
+    oneTimePurchaseOffers: TTGoogleIAPOneTimePurchaseOffer[];
+    /** Populated for "subs" products; otherwise empty. */
+    subscriptionOffers: TTGoogleIAPSubscriptionOffer[];
+};
+
+/** Account identifiers obfuscated by the app when starting the billing flow. */
+export type TTGoogleIAPAccountIdentifiers = {
+    obfuscatedAccountId: string | null;
+    obfuscatedProfileId: string | null;
+};
+
+/** Pending subscription upgrade or downgrade associated with a purchase. */
+export type TTGoogleIAPPendingPurchaseUpdate = {
+    products: string[];
+    purchaseToken: string;
+};
+
+/** Serializable purchase record returned by Billing. */
+export type TTGoogleIAPPurchase = {
+    /** Display/reference value only. Use purchaseToken as the unique idempotency key. */
+    orderId: string | null;
+    packageName: string;
+    products: string[];
+    purchaseTime: number;
+    purchaseToken: string;
+    quantity: number;
+    purchaseState: string;
+    /** 0: unspecified, 1: purchased, 2: pending. */
+    purchaseStateCode: number;
+    isAcknowledged: boolean;
+    isAutoRenewing: boolean;
+    /** Suspended subscriptions are not active and must not grant entitlement. */
+    isSuspended: boolean;
+    pendingPurchaseUpdate: TTGoogleIAPPendingPurchaseUpdate | null;
+    accountIdentifiers: TTGoogleIAPAccountIdentifiers | null;
+    /** Signed purchase payload retained for local validation and diagnostics. */
+    originalJson: string;
+    signature: string;
+};
+
+// Connection
+
+export type TTGoogleIAPConnectSuccess = {
+    /** Always "connected". */
+    connectionState: string;
+};
+
+export type TTGoogleIAPConnectSuccessCallback = (result: TTGoogleIAPConnectSuccess) => void;
+
+export type TTGoogleIAPConnectionStateChangedResult = {
+    /** "disconnected", "connecting", "connected", or "closed". */
+    connectionState: string;
+    responseCode: number | null;
+    debugMessage: string | null;
+};
+
+export type TTGoogleIAPConnectionStateChangedCallback = (result: TTGoogleIAPConnectionStateChangedResult) => void;
+
+export type TTGoogleIAPConnectOptions = {
+    /** Enable support for prepaid subscription plans in addition to one-time pending purchases. */
+    enablePrepaidPlans?: boolean;
+    /** Automatically reconnect the billing service. Defaults to true. */
+    enableAutoServiceReconnection?: boolean;
+    success?: TTGoogleIAPConnectSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Product query
+
+export type TTGoogleIAPProductQuery = {
+    productId: string;
+    /** "inapp" or "subs". */
+    productType: string;
+};
+
+export type TTGoogleIAPQueryProductDetailsSuccess = {
+    products: TTGoogleIAPProductDetails[];
+    /** Billing Library 9 reports per-product failures here. */
+    unfetchedProducts: TTGoogleIAPUnfetchedProduct[];
+};
+
+export type TTGoogleIAPQueryProductDetailsSuccessCallback = (result: TTGoogleIAPQueryProductDetailsSuccess) => void;
+
+export type TTGoogleIAPQueryProductDetailsOptions = {
+    products: TTGoogleIAPProductQuery[];
+    success?: TTGoogleIAPQueryProductDetailsSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Purchase flow
+
+export type TTGoogleIAPSubscriptionReplacement = {
+    /** New product in this billing flow. */
+    newProductId: string;
+    /** Product in the existing subscription purchase being replaced. */
+    oldProductId: string;
+    /**
+     * "withTimeProration", "chargeProratedPrice", "withoutProration", "deferred",
+     * "chargeFullPrice", or "keepExisting".
+     */
+    replacementMode: string;
+};
+
+export type TTGoogleIAPLaunchBillingFlowSuccess = {
+    /** Immediate BillingResult. A successful launch does not mean the purchase completed. */
+    responseCode: number;
+    debugMessage: string;
+};
+
+export type TTGoogleIAPLaunchBillingFlowSuccessCallback = (result: TTGoogleIAPLaunchBillingFlowSuccess) => void;
+
+/** Product entry used to start a Billing Library 9 flow. */
+export type TTGoogleIAPBillingFlowItem = {
+    /** Must have been returned by queryProductDetails() in the current process. */
+    productId: string;
+    /** Required for subscriptions and tokenized one-time offers; omit for a legacy one-time item. */
+    offerToken?: string;
+};
+
+export type TTGoogleIAPLaunchBillingFlowOptions = {
+    /** "inapp" or "subs". All items must have this type in the native product cache. */
+    productType: string;
+    /** Supports multiple one-time products or eligible subscription add-ons. */
+    items: TTGoogleIAPBillingFlowItem[];
+    /** Required together with replacements when replacing a subscription; otherwise omit both. */
+    oldPurchaseToken?: string;
+    /**
+     * Required and non-empty together with oldPurchaseToken for "subs" replacement. Every
+     * newProductId must occur exactly once in items. Omit for a new subscription or "inapp" flow.
+     */
+    replacements?: TTGoogleIAPSubscriptionReplacement[];
+    /** Hashed/non-PII account id, at most 64 characters. */
+    obfuscatedAccountId?: string;
+    /** Hashed/non-PII profile id, at most 64 characters. */
+    obfuscatedProfileId?: string;
+    isOfferPersonalized?: boolean;
+    success?: TTGoogleIAPLaunchBillingFlowSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+/**
+ * Final result delivered by PurchasesUpdatedListener.
+ * An OK result may contain PURCHASED or PENDING purchases. Grant entitlement only for PURCHASED,
+ * non-suspended purchases after server verification. Query purchases after startup and on resume;
+ * this listener does not recover events lost during process death.
+ */
+export type TTGoogleIAPPurchasesUpdatedResult = {
+    /** BillingClient.BillingResponseCode; unknown future values are preserved. */
+    responseCode: number;
+    /** 0 none, 1 insufficient funds, or 2 ineligible. */
+    subResponseCode: number;
+    debugMessage: string;
+    purchases: TTGoogleIAPPurchase[] | null;
+};
+
+export type TTGoogleIAPPurchasesUpdatedCallback = (result: TTGoogleIAPPurchasesUpdatedResult) => void;
+
+// Existing purchases
+
+export type TTGoogleIAPQueryPurchasesSuccess = {
+    purchases: TTGoogleIAPPurchase[];
+};
+
+export type TTGoogleIAPQueryPurchasesSuccessCallback = (result: TTGoogleIAPQueryPurchasesSuccess) => void;
+
+export type TTGoogleIAPQueryPurchasesOptions = {
+    /** "inapp" or "subs". */
+    productType: string;
+    /** Valid only for "subs"; defaults to false. */
+    includeSuspendedSubscriptions?: boolean;
+    success?: TTGoogleIAPQueryPurchasesSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+export type TTGoogleIAPRestorePurchasesPart = {
+    /** Whether this product-type query succeeded. */
+    success: boolean;
+    /** Empty when success is false. */
+    purchases: TTGoogleIAPPurchase[];
+    /** Null when success is true. */
+    error: TTGoogleIAPBillingFail | null;
+};
+
+export type TTGoogleIAPRestorePurchasesResult = {
+    inApp: TTGoogleIAPRestorePurchasesPart;
+    subscriptions: TTGoogleIAPRestorePurchasesPart;
+};
+
+export type TTGoogleIAPRestorePurchasesCallback = (result: TTGoogleIAPRestorePurchasesResult) => void;
+
+export type TTGoogleIAPRestorePurchasesOptions = {
+    /** The subscriptions part contains FEATURE_NOT_SUPPORTED when the Play Store lacks this feature. */
+    includeSuspendedSubscriptions?: boolean;
+    /** Called after both queries finish, including when only one query succeeds. */
+    success?: TTGoogleIAPRestorePurchasesCallback;
+    /** Reserved for validation or connection failures before either query starts. */
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Purchase acknowledgement and consumption
+
+export type TTGoogleIAPAcknowledgePurchaseSuccess = {
+    purchaseToken: string;
+};
+
+export type TTGoogleIAPAcknowledgePurchaseSuccessCallback = (result: TTGoogleIAPAcknowledgePurchaseSuccess) => void;
+
+export type TTGoogleIAPAcknowledgePurchaseOptions = {
+    /** Token of a PURCHASED, non-consumable product or subscription. */
+    purchaseToken: string;
+    success?: TTGoogleIAPAcknowledgePurchaseSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+export type TTGoogleIAPConsumePurchaseSuccess = {
+    purchaseToken: string;
+};
+
+export type TTGoogleIAPConsumePurchaseSuccessCallback = (result: TTGoogleIAPConsumePurchaseSuccess) => void;
+
+export type TTGoogleIAPConsumePurchaseOptions = {
+    /** Token of a PURCHASED consumable product. Consumption also acknowledges the purchase. */
+    purchaseToken: string;
+    success?: TTGoogleIAPConsumePurchaseSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// In-app subscription messages
+
+export type TTGoogleIAPShowInAppMessagesSuccess = {
+    /** 0 no action needed, 1 subscription status updated. */
+    responseCode: number;
+    purchaseToken: string | null;
+};
+
+export type TTGoogleIAPShowInAppMessagesSuccessCallback = (result: TTGoogleIAPShowInAppMessagesSuccess) => void;
+
+export type TTGoogleIAPShowInAppMessagesOptions = {
+    /** Show transactional subscription messages, including opt-in price increase notices. */
+    success?: TTGoogleIAPShowInAppMessagesSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Billing configuration
+
+export type TTGoogleIAPGetBillingConfigSuccess = {
+    /** ISO 3166-1 alpha-2 country code determined by Billing. */
+    countryCode: string;
+};
+
+export type TTGoogleIAPGetBillingConfigSuccessCallback = (result: TTGoogleIAPGetBillingConfigSuccess) => void;
+
+export type TTGoogleIAPGetBillingConfigOptions = {
+    success?: TTGoogleIAPGetBillingConfigSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Subscription management
+
+export type TTGoogleIAPOpenSubscriptionCenterSuccess = {
+    /** Always true. */
+    opened: boolean;
+};
+
+export type TTGoogleIAPOpenSubscriptionCenterSuccessCallback = (result: TTGoogleIAPOpenSubscriptionCenterSuccess) => void;
+
+export type TTGoogleIAPOpenSubscriptionCenterOptions = {
+    /** Opens management for this subscription when supplied, otherwise opens the subscriptions list. */
+    productId?: string;
+    success?: TTGoogleIAPOpenSubscriptionCenterSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+// Feature support
+
+export type TTGoogleIAPIsFeatureSupportedSuccess = {
+    feature: string;
+    supported: boolean;
+};
+
+export type TTGoogleIAPIsFeatureSupportedSuccessCallback = (result: TTGoogleIAPIsFeatureSupportedSuccess) => void;
+
+export type TTGoogleIAPIsFeatureSupportedOptions = {
+    /**
+     * "subscriptions", "subscriptionsUpdate", "productDetails", "inAppMessaging",
+     * "includeSuspendedSubscriptions", or "billingConfig".
+     */
+    feature: string;
+    success?: TTGoogleIAPIsFeatureSupportedSuccessCallback;
+    fail?: TTGoogleIAPBillingFailCallback;
+    complete?: TTGoogleIAPCompleteCallback;
+};
+
+/** Billing client exposed to uni-app / uni-app x. */
+export interface TTGoogleIAP {
+    /**
+     * Create the BillingClient and connect it to Billing.
+     * Builder options are fixed until disconnect(). Repeated calls while connected reuse the client.
+     * Concurrent calls while connecting join the same attempt and each caller receives its callbacks;
+     * the first call's builder options win.
+     */
+    connect(options: TTGoogleIAPConnectOptions): void;
+
+    /** Close the client and clear native product cache; registered public listeners are retained. */
+    disconnect(): void;
+
+    /** Return the current connection state without starting a connection. */
+    getConnectionState(): string;
+
+    /** Return whether BillingClient is currently ready for requests. */
+    isReady(): boolean;
+
+    /** Add a main-thread connection listener. Duplicate callback references are ignored. */
+    onConnectionStateChanged(callback: TTGoogleIAPConnectionStateChangedCallback): void;
+
+    /** Remove a connection listener, or all listeners when omitted. */
+    offConnectionStateChanged(callback?: TTGoogleIAPConnectionStateChangedCallback): void;
+
+    /**
+     * Query product metadata and available one-time or subscription offers.
+     * The implementation caches the native ProductDetails by productId and productType for use by
+     * launchBillingFlow(). The cache is process-local and refreshed per product by later successful
+     * queries. Unrelated cached products are retained. A requested product returned as unfetched is
+     * removed from the cache so stale offer tokens cannot be purchased.
+     */
+    queryProductDetails(options: TTGoogleIAPQueryProductDetailsOptions): void;
+
+    /**
+     * Return a copy of one process-local cached product, or null when it has not been queried
+     * successfully. Mutating the returned value never changes the native ProductDetails cache.
+     */
+    getCachedProductDetails(product: TTGoogleIAPProductQuery): TTGoogleIAPProductDetails | null;
+
+    /** Clear one cached product, or all cached products when product is omitted. */
+    clearProductDetailsCache(product?: TTGoogleIAPProductQuery): void;
+
+    /**
+     * Display Billing's purchase UI.
+     * The success callback only reports that the UI was launched. Observe the final result with
+     * onPurchasesUpdated() and queryPurchases() when the app returns to the foreground.
+     */
+    launchBillingFlow(options: TTGoogleIAPLaunchBillingFlowOptions): void;
+
+    /** Query active purchases. Call once for inapp and once for subs when restoring entitlements. */
+    queryPurchases(options: TTGoogleIAPQueryPurchasesOptions): void;
+
+    /** Query both types and report each query result independently after startup or resume. */
+    restorePurchases(options: TTGoogleIAPRestorePurchasesOptions): void;
+
+    /** Acknowledge a verified non-consumable purchase or subscription within three days. */
+    acknowledgePurchase(options: TTGoogleIAPAcknowledgePurchaseOptions): void;
+
+    /** Consume a verified consumable one-time purchase so that it can be bought again. */
+    consumePurchase(options: TTGoogleIAPConsumePurchaseOptions): void;
+
+    /** Show transactional subscription messages supported by Billing. */
+    showInAppMessages(options: TTGoogleIAPShowInAppMessagesOptions): void;
+
+    /** Query the Billing billing country code. */
+    getBillingConfig(options: TTGoogleIAPGetBillingConfigOptions): void;
+
+    /** Open Billing's subscription management screen. */
+    openSubscriptionCenter(options: TTGoogleIAPOpenSubscriptionCenterOptions): void;
+
+    /** Check whether the installed store supports a Billing feature. */
+    isFeatureSupported(options: TTGoogleIAPIsFeatureSupportedOptions): void;
+
+    /** Add a main-thread purchase listener. Duplicate callback references are ignored. */
+    onPurchasesUpdated(callback: TTGoogleIAPPurchasesUpdatedCallback): void;
+
+    /** Remove a listener, or all listeners when callback is omitted. */
+    offPurchasesUpdated(callback?: TTGoogleIAPPurchasesUpdatedCallback): void;
+}
+
+/** Return the process-wide Billing client wrapper. */
+export type GetTTGoogleIAP = () => TTGoogleIAP;

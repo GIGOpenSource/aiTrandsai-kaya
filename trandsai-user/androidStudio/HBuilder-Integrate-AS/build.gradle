@@ -1,0 +1,29 @@
+buildscript {
+    repositories {
+        maven {url 'https://maven.aliyun.com/repository/google'}
+        maven {url 'https://maven.aliyun.com/repository/gradle-plugin'}
+        maven {url 'https://maven.aliyun.com/repository/public'}
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.12.0'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.0'
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
+allprojects {
+    repositories {
+        maven {url 'https://maven.aliyun.com/repository/google'}
+        maven {url 'https://maven.aliyun.com/repository/gradle-plugin'}
+        maven {url 'https://maven.aliyun.com/repository/public'}
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

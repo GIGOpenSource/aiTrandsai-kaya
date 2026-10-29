@@ -1,0 +1,80 @@
+{
+	"id": "trands-attribution",
+	"displayName": "Trands Attribution",
+	"version": "1.0.0",
+	"description": "Read GAID / IDFA / Install Referrer for growth attribution.",
+	"keywords": [
+		"attribution",
+		"GAID",
+		"IDFA",
+		"install referrer"
+	],
+	"repository": "",
+	"engines": {
+		"HBuilderX": "^3.6.8",
+		"uni-app": "^3.0.0",
+		"uni-app-x": "^3.0.0"
+	},
+	"dcloudext": {
+		"type": "uts",
+		"sale": {
+			"regular": {
+				"price": "0.00"
+			},
+			"sourcecode": {
+				"price": "0.00"
+			}
+		},
+		"contact": {
+			"qq": ""
+		},
+		"declaration": {
+			"ads": "读取广告标识用于归因",
+			"data": "广告 ID 与安装来源仅在 App 内读取，由业务层上报自有后端",
+			"permissions": "Android AD_ID；iOS ATT"
+		},
+		"npmurl": "",
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "x"
+	},
+	"uni_modules": {
+		"dependencies": [],
+		"encrypt": [],
+		"platforms": {
+			"cloud": {
+				"tcb": "x",
+				"aliyun": "x",
+				"alipay": "x"
+			},
+			"client": {
+				"uni-app": {
+					"vue": {
+						"vue2": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"vue3": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						}
+					},
+					"app": {
+						"vue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "24"
+						},
+						"ios": {
+							"extVersion": "1.0.0",
+							"minVersion": "14"
+						}
+					}
+				}
+			}
+		}
+	}
+}

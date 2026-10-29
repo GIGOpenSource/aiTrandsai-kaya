@@ -1,0 +1,3 @@
+-keep class uts.sdk.modules.trandsGoogleIap.** { *; }
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**

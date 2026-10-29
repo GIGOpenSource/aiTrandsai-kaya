@@ -1,0 +1,127 @@
+/**
+ * iOS Firebase Analytics
+ *
+ * 参数：JS 侧 JSON.stringify 后传入，避免 UTSJSONObject.get/getString 桥接丢参。
+ */
+import { FirebaseApp } from 'FirebaseCore'
+import { Analytics } from 'FirebaseAnalytics'
+
+let configured = false
+
+const PARAM_KEYS = [
+	'device',
+	'method',
+	'uid',
+	'product',
+	'gclid',
+	'utm_source',
+	'utm_medium',
+	'utm_campaign',
+	'utm_content',
+	'utm_term',
+	'page',
+	'source',
+	'tab',
+	'launch_type',
+	'scene',
+	'target_id',
+	'companion_id',
+	'page_path',
+	'filter',
+	'complete',
+	'unread',
+	'used',
+	'home_sec',
+	'bg_ms',
+	'remaining',
+	'online_sec',
+]
+
+function ensureConfigured() : boolean {
+	if (configured) return true
+	try {
+		if (FirebaseApp.app() == null) {
+			FirebaseApp.configure()
+		}
+		configured = true
+		return true
+	} catch (e) {
+		try {
+			FirebaseApp.configure()
+			configured = true
+			return true
+		} catch (e2) {
+			console.warn('[trands-firebase-analytics] FirebaseApp.configure failed', e2)
+			return false
+		}
+	}
+}
+
+function extractJsonStringValue(json : string, key : string) : string | null {
+	const marker = '"' + key + '":"'
+	const start = json.indexOf(marker)
+	if (start < 0) return null
+	const from = start + marker.length
+	const end = json.indexOf('"', from)
+	if (end < 0 || end <= from) return null
+	return json.substring(from, end)
+}
+
+function buildEventParametersFromJson(raw : string | null) : Map<string, string> | null {
+	if (raw == null || raw.length == 0 || raw == '{}' || raw == 'null') return null
+	const out = new Map<string, string>()
+	for (let i = 0; i < PARAM_KEYS.length; i++) {
+		const key = PARAM_KEYS[i]
+		const value = extractJsonStringValue(raw, key)
+		if (value != null && value.length > 0) {
+			out.set(key, value)
+		}
+	}
+	return out.size > 0 ? out : null
+}
+
+export function configure() : boolean {
+	const ok = ensureConfigured()
+	console.log('[trands-firebase-analytics] configure => ' + String(ok))
+	return ok
+}
+
+export function logEvent(name : string, params : string | null = null) : void {
+	if (name.length == 0) return
+	if (!ensureConfigured()) return
+	let eventParams : Map<string, string> | null = null
+	if (params != null && params.length > 0) {
+		try {
+			eventParams = buildEventParametersFromJson(params)
+		} catch (e) {
+			console.warn('[trands-firebase-analytics] buildEventParametersFromJson failed', e)
+		}
+	}
+	try {
+		Analytics.logEvent(name, parameters = eventParams)
+		console.log('[trands-firebase-analytics] logEvent ok: ' + name)
+	} catch (e) {
+		try {
+			Analytics.logEvent(name, parameters = null)
+			console.log('[trands-firebase-analytics] logEvent fallback: ' + name)
+		} catch (e2) {
+			console.warn('[trands-firebase-analytics] logEvent failed: ' + name, e2)
+		}
+	}
+}
+
+export function setUserId(userId : string | null) : void {
+	if (!ensureConfigured()) return
+	Analytics.setUserID(userId)
+}
+
+export function setUserProperty(name : string, value : string | null) : void {
+	if (name.length == 0) return
+	if (!ensureConfigured()) return
+	Analytics.setUserProperty(value, forName = name)
+}
+
+export function setAnalyticsCollectionEnabled(enabled : boolean) : void {
+	if (!ensureConfigured()) return
+	Analytics.setAnalyticsCollectionEnabled(enabled)
+}

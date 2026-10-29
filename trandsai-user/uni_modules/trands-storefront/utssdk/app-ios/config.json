@@ -1,0 +1,7 @@
+{
+	"deploymentTarget": "13.0",
+	"validArchitectures": ["arm64"],
+	"frameworks": [
+		"StoreKit.framework"
+	]
+}

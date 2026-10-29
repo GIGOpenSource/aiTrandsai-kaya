@@ -1,0 +1,124 @@
+{
+	"id": "trands-storefront",
+	"displayName": "Trands Storefront Country",
+	"version": "1.0.0",
+	"description": "Read App Store SKStorefront countryCode (ISO alpha-3). Convert to alpha-2 in JS.",
+	"keywords": [
+		"StoreKit",
+		"storefront",
+		"IAP"
+	],
+	"repository": "",
+	"engines": {
+		"HBuilderX": "^3.6.8",
+		"uni-app": "^3.0.0",
+		"uni-app-x": "^3.0.0"
+	},
+	"dcloudext": {
+		"type": "uts",
+		"sale": {
+			"regular": {
+				"price": "0.00"
+			},
+			"sourcecode": {
+				"price": "0.00"
+			}
+		},
+		"contact": {
+			"qq": ""
+		},
+		"declaration": {
+			"ads": "无",
+			"data": "读取 App Store 商店国家码，不上报服务器",
+			"permissions": "无"
+		},
+		"npmurl": "",
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "x"
+	},
+	"uni_modules": {
+		"dependencies": [],
+		"encrypt": [],
+		"platforms": {
+			"cloud": {
+				"tcb": "x",
+				"aliyun": "x",
+				"alipay": "x"
+			},
+			"client": {
+				"uni-app": {
+					"vue": {
+						"vue2": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"vue3": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						}
+					},
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"vue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"nvue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "24"
+						},
+						"ios": {
+							"extVersion": "1.0.0",
+							"minVersion": "13"
+						},
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x",
+						"alipay": "x",
+						"toutiao": "x",
+						"baidu": "x",
+						"kuaishou": "x",
+						"jd": "x",
+						"harmony": "x",
+						"qq": "x",
+						"lark": "x",
+						"xhs": "x"
+					},
+					"quickapp": {
+						"huawei": "x",
+						"union": "x"
+					}
+				},
+				"uni-app-x": {
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "24"
+						},
+						"ios": {
+							"extVersion": "1.0.0",
+							"minVersion": "13"
+						},
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x"
+					}
+				}
+			}
+		}
+	}
+}

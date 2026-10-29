@@ -1,0 +1,1 @@
+-keep class uts.sdk.modules.trandsAttribution.** { *; }

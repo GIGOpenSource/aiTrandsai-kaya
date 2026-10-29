@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'uts.sdk.modules.trandsFirebaseAnalytics'
+    compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 24
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            consumerProguardFiles 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    sourceSets {
+        main.java.srcDirs += 'src/main/java'
+    }
+}
+
+dependencies {
+    compileOnly fileTree(dir: '../simpleDemo/libs', include: ['*.aar'])
+    // Compile from src/main/java/index.kt (Log.i TrandsFA). Keep libs/index.jar as fallback backup.
+    // api files('libs/index.jar')
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation('com.google.firebase:firebase-analytics') {
+        exclude group: 'com.google.android.gms', module: 'play-services-places-placereport'
+    }
+}

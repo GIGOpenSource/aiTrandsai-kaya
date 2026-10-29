@@ -1,0 +1,150 @@
+/**
+ * Android: GAID, ANDROID_ID, Play Install Referrer
+ */
+import Context from 'android.content.Context'
+import Settings from 'android.provider.Settings'
+import AdvertisingIdClient from 'com.google.android.gms.ads.identifier.AdvertisingIdClient'
+import InstallReferrerClient from 'com.android.installreferrer.api.InstallReferrerClient'
+import InstallReferrerStateListener from 'com.android.installreferrer.api.InstallReferrerStateListener'
+import Thread from 'java.lang.Thread'
+import CountDownLatch from 'java.util.concurrent.CountDownLatch'
+import TimeUnit from 'java.util.concurrent.TimeUnit'
+
+const REFERRER_OK = 0
+
+let cachedReferrer = ''
+let referrerReady = false
+let referrerStarted = false
+
+class TrandsReferrerListener implements InstallReferrerStateListener {
+	private client : InstallReferrerClient
+	constructor(client : InstallReferrerClient) {
+		this.client = client
+	}
+	override onInstallReferrerSetupFinished(responseCode : Int) : void {
+		try {
+			if (responseCode == REFERRER_OK) {
+				const response = this.client.getInstallReferrer()
+				if (response != null) {
+					const ref = response.getInstallReferrer()
+					if (ref != null) cachedReferrer = ref
+				}
+			}
+		} catch (e) {
+			console.warn('[trands-attribution] referrer read failed', e)
+		} finally {
+			referrerReady = true
+			try {
+				this.client.endConnection()
+			} catch (e2) {
+				/* ignore */
+			}
+		}
+	}
+	override onInstallReferrerServiceDisconnected() : void {
+		referrerReady = true
+	}
+}
+
+class GaidLoadTask implements Runnable {
+	private context : Context
+	private latch : CountDownLatch
+	adId : string = ''
+	limited : boolean = true
+	constructor(context : Context, latch : CountDownLatch) {
+		this.context = context
+		this.latch = latch
+	}
+	override run() : void {
+		try {
+			const info = AdvertisingIdClient.getAdvertisingIdInfo(this.context)
+			if (info != null) {
+				const id = info.getId()
+				if (id != null) this.adId = id
+				this.limited = info.isLimitAdTrackingEnabled()
+			}
+		} catch (e) {
+			console.warn('[trands-attribution] GAID read failed', e)
+		} finally {
+			this.latch.countDown()
+		}
+	}
+}
+
+function getContext() : Context | null {
+	return UTSAndroid.getAppContext()
+}
+
+function buildAdInfoJson(adId : string, adType : string, limited : boolean) : string {
+	if (adId.length > 0 && adId != '00000000-0000-0000-0000-000000000000') {
+		return '{"ad_id":"' + adId + '","ad_id_type":"' + adType + '","limited":' + (limited ? 'true' : 'false') + '}'
+	}
+	return '{"ad_id":"","ad_id_type":"none","limited":true}'
+}
+
+export function getAdvertisingInfo() : string {
+	const context = getContext()
+	if (context == null) return buildAdInfoJson('', 'none', true)
+	const latch = new CountDownLatch(1)
+	const task = new GaidLoadTask(context, latch)
+	Thread(task).start()
+	try {
+		latch.await(3, TimeUnit.SECONDS)
+	} catch (e) {
+		console.warn('[trands-attribution] GAID await failed', e)
+	}
+	return buildAdInfoJson(task.adId, 'gaid', task.limited)
+}
+
+export function getIdfv() : string {
+	return ''
+}
+
+export function getAndroidId() : string {
+	const context = getContext()
+	if (context == null) return ''
+	try {
+		const id = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID)
+		return id != null ? id : ''
+	} catch (e) {
+		console.warn('[trands-attribution] ANDROID_ID read failed', e)
+		return ''
+	}
+}
+
+export function prefetchInstallReferrer() : void {
+	if (referrerStarted) return
+	const context = getContext()
+	if (context == null) {
+		referrerReady = true
+		return
+	}
+	referrerStarted = true
+	try {
+		const client = InstallReferrerClient.newBuilder(context).build()
+		client.startConnection(new TrandsReferrerListener(client))
+	} catch (e) {
+		console.warn('[trands-attribution] prefetchInstallReferrer failed', e)
+		referrerReady = true
+	}
+}
+
+export function getInstallReferrer() : string {
+	return cachedReferrer
+}
+
+export function isInstallReferrerReady() : boolean {
+	return referrerReady
+}
+
+export function requestTrackingAuthorization() : void {
+	/* Android no-op */
+}
+
+export function getTrackingAuthorizationStatus() : string {
+	return 'unknown'
+}
+
+export function consumeTrackingAuthorizationResult() : string {
+	return ''
+}

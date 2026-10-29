@@ -1,0 +1,100 @@
+/* 去掉 ProLayout 头部及操作区的灰色背景 */
+.ant-pro-layout .ant-layout-header,
+.ant-pro-layout .ant-pro-layout-header,
+.ant-pro-layout .ant-pro-global-header,
+.ant-pro-layout .ant-pro-global-header-right-content,
+.ant-pro-layout .ant-pro-layout-header-actions,
+.ant-pro-layout .ant-pro-global-header-header-actions-item,
+.ant-pro-layout .ant-pro-global-header-header-actions-item:hover,
+.ant-pro-layout .ant-pro-global-header-header-actions-item > *,
+.ant-pro-layout .ant-pro-global-header-header-actions-item > *:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  transition: none !important;
+}
+
+.ant-pro-layout .ant-layout-header:hover,
+.ant-pro-layout .ant-pro-layout-header:hover,
+.ant-pro-layout .ant-pro-global-header:hover,
+.ant-pro-layout .ant-pro-global-header-right-content:hover,
+.ant-pro-layout .ant-pro-layout-header-actions:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.ant-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ant-pagination .ant-pagination-total-text,
+.ant-pagination .ant-pagination-item,
+.ant-pagination .ant-pagination-prev,
+.ant-pagination .ant-pagination-next,
+.ant-pagination .ant-pagination-jump-prev,
+.ant-pagination .ant-pagination-jump-next {
+  margin-inline-end: 0;
+}
+
+.ant-pagination .ant-pagination-options {
+  margin-inline-start: 8px;
+}
+
+@keyframes im-unread-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.ant-notification {
+  z-index: 2000 !important;
+}
+
+.companion-search-select.ant-select {
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.companion-search-select .ant-select-selector {
+  overflow: hidden !important;
+}
+
+.companion-search-select.ant-select-multiple .ant-select-selection-overflow {
+  flex-wrap: nowrap !important;
+}
+
+.companion-search-select.ant-select-multiple .ant-select-selection-item {
+  max-width: 110px;
+}
+
+.moment-companion-filter-item,
+.moment-companion-filter-item .ant-form-item-control,
+.moment-companion-filter-item .ant-form-item-control-input,
+.moment-companion-filter-item .ant-form-item-control-input-content {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.im-col-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: transparent;
+}
+
+.im-col-resize-handle:hover::after,
+.im-col-resize-handle:active::after {
+  background: #1677ff;
+}

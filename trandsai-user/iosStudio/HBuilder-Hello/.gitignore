@@ -1,0 +1,13 @@
+Pods/
+Podfile.lock
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+*.ipa
+*.dSYM/
+*.app
+*.xcarchive
+UTSPlugins/.generated/
+HBuilder-Hello/Pandora/apps/*/www/*
+!HBuilder-Hello/Pandora/apps/*/www/.gitkeep

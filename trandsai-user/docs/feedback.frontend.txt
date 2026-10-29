@@ -1,0 +1,225 @@
+# Feedback 官方客服 — 前端对接文档（用户端 + 管理端）
+
+不需要 WebSocket / 长连接。用户端 **Messages 聊天列表置顶入口** + 聊天页轮询。
+**不是设置页功能**：客服入口一直在聊天列表里，和原来一样。
+
+鉴权：
+- 用户端：`x-token: <用户 token>`，建议带 `Accept-Language`
+- 管理端：`Authorization: Bearer <admin_token>` 或 `x-token`
+
+---
+
+## 0. 实时怎么做（不必长连接）
+
+```
+进入聊天：GET /api/feedback/messages
+之后每 3～5 秒：GET /api/feedback/messages?since_id=<当前最大 id>&mark_read=false
+```
+
+---
+
+## 1. Messages 列表（客服入口）
+
+客服 **始终置顶出现在聊天列表**（`pinned === true`），不要因为没聊过就隐藏。
+
+没聊过 / 已清空：**不显示最近聊天时间**（`last_message_at` 为 `null`）。  
+有过消息：时间只用 `last_message_at`，**不要用 `updated_at`**。
+
+| `has_chat` | 列表 | 最近聊天时间 |
+|------------|------|----------------|
+| `false` | **仍然展示**客服这一行 | **不显示**时间 |
+| `true` | 展示 | 显示 `last_message_at` |
+
+### `GET /api/feedback/inbox`
+
+列表加载时调一次。不清未读。不为没聊过的人创建空会话。
+
+有过聊天：
+
+```json
+{
+  "thread_id": 12,
+  "pinned": true,
+  "has_chat": true,
+  "status": "open",
+  "entry_name": "Feedback",
+  "unread_count": 1,
+  "last_message": "你好，关于首页的问题……",
+  "last_message_sender": "admin",
+  "last_message_at": "2026-10-15T08:01:00+00:00",
+  "updated_at": "2026-10-15T08:01:00+00:00"
+}
+```
+
+从未聊过 / 已清空：
+
+```json
+{
+  "thread_id": null,
+  "pinned": true,
+  "has_chat": false,
+  "status": "open",
+  "entry_name": "Feedback",
+  "unread_count": 0,
+  "last_message": "",
+  "last_message_sender": "",
+  "last_message_at": null,
+  "updated_at": null
+}
+```
+
+| 字段 | 读取 |
+|------|------|
+| `pinned` | 恒为 `true`：Messages **始终渲染**客服入口 |
+| `has_chat` | 是否有过消息。**不要**用它控制显隐，只用它/下面时间字段控制是否画时间 |
+| `last_message_at` | 列表时间。`null` → 不画时间 |
+| `last_message` | 摘要；无消息可空 |
+| `unread_count` | 官方未读 |
+| `entry_name` | 入口名（按 Accept-Language） |
+| `updated_at` | **禁止**当列表时间 |
+
+头像用 App Logo，与智能体会话分开、固定置顶。有 `last_message_at` 时也不要按时间和普通会话混排到中间，客服保持置顶。
+
+---
+
+## 2. 客服聊天页
+
+从 Messages 点进客服即可。无消息时展示空态文案（不要因此把列表入口拿掉）。
+
+### 2.1 加载 `GET /api/feedback/messages`
+
+无记录不创建会话，`messages: []`，`has_chat: false`。
+
+默认 `mark_read=true`（进入清未读）。轮询：`since_id` + `mark_read=false`。
+
+```json
+{
+  "thread_id": 12,
+  "has_chat": true,
+  "status": "open",
+  "unread_count": 0,
+  "messages": [
+    { "id": 2, "sender": "user", "content": "首页有问题", "created_at": "..." },
+    { "id": 3, "sender": "admin", "content": "你好，关于首页的问题……", "created_at": "..." }
+  ]
+}
+```
+
+无聊天：`messages: []`，聊天页空态；列表仍显示客服、无时间。
+
+### 2.2 发送 `POST /api/feedback/messages`
+
+```json
+{ "content": "首页有问题" }
+```
+
+第一条发出后 `has_chat=true`，再拉 inbox 会有 `last_message_at`，列表开始显示时间。无自动回复。
+
+### 2.3 清空 `POST /api/feedback/clear-messages`
+
+也可 `DELETE /api/feedback/messages`。
+
+```json
+{
+  "ok": true,
+  "pinned": true,
+  "has_chat": false,
+  "deleted": 3,
+  "unread_count": 0,
+  "last_message_at": null
+}
+```
+
+清空后：聊天页空态；**Messages 客服入口仍在**，只是不再显示最近聊天时间。
+
+### 2.4 清未读 `POST /api/feedback/read`
+
+进入若已 `GET /messages`（默认 mark_read）可不再调。
+
+### 2.5 推荐流程
+
+1. Messages：`GET /inbox` → **始终置顶渲染**客服
+2. `last_message_at == null`（或 `has_chat === false`）→ 不画时间
+3. 有 `last_message_at` → 画时间 + `last_message` 摘要 + `unread_count` 红点
+4. 点进聊天：`GET /messages`；无消息空态
+5. 发送：`POST /messages` → 刷新 inbox，出现时间
+6. 轮询：`GET /messages?since_id=&mark_read=false`
+7. 清空：`POST /clear-messages` → 入口还在，时间去掉
+8. 不要把客服做成设置页入口；不要用 `updated_at`
+
+---
+
+
+## 3. 管理端「意见反馈」
+
+无智能体 ID。未读方向与用户端相反：**用户发出、运营未看** 的消息数。
+
+### 3.1 列表 `GET /api/admin/feedback`
+
+```
+GET /api/admin/feedback?page=1&page_size=10&keyword=&status=&user_id=&has_unread=
+```
+
+标准分页：`results` + `pagination`。
+
+| Query | 说明 |
+|-------|------|
+| `page` / `page_size` | 默认 1 / 10，最大 200 |
+| `keyword` | 昵称 / 用户名 / 展示名模糊 |
+| `status` | `open` / `replied` / `closed` |
+| `user_id` | 精确 |
+| `has_unread` | `true` 仅未读 |
+
+列表项：
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 会话 id |
+| `user_id` / `username` / `nickname` / `user_name` / `language` | 用户信息 |
+| `status` | open / replied |
+| `unread_count` | 后台未读（用户消息） |
+| `last_message` / `last_message_sender` / `last_message_at` | 最近一条 |
+| `last_user_msg_at` | 用户最近一条，列表按此倒序 |
+| `created_at` / `updated_at` | |
+
+**没有** `companion_id`。
+
+### 3.2 详情 `GET /api/admin/feedback/{id}/messages`
+
+打开会话默认清后台未读。轮询：`?since_id=&mark_read=false`。
+
+### 3.3 回复 `POST /api/admin/feedback/{id}/reply`
+
+```json
+{ "content": "你好，关于首页的问题……" }
+```
+
+写入 `sender=admin`。用户轮询即可看到。不关闭会话。不触发任何自动回复。
+
+### 3.4 清未读 `POST /api/admin/feedback/{id}/read`
+
+### 3.5 删除 `DELETE /api/admin/feedback/{id}`
+
+仍可用。用户端 inbox 无消息时 `has_chat=false`（列表仍置顶、不显示时间）。用户再发消息会重建会话。
+
+---
+
+## 4. 文案语言
+
+按请求 `Accept-Language`（如 `en` / `ja` / `ko` / `zh` / `pt` / `es` / `id`）：
+
+| 场景 | 说明 |
+|------|------|
+| 入口名 `entry_name` | Feedback / 意见反馈 / … |
+| 欢迎语 / 自动回复 | **已关闭**，不再写入 |
+| 人工回复 `admin` | 运营原文，不自动翻译 |
+
+---
+
+## 5. sender 约定
+
+| sender | 谁 |
+|--------|----|
+| `user` | 用户 |
+| `system` | 历史欢迎语/自动回复（新会话不再产生） |
+| `admin` | 运营人工 |

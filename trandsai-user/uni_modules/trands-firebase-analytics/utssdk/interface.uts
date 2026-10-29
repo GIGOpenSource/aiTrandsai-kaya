@@ -1,0 +1,32 @@
+/**
+ * Trands Firebase Analytics — shared API.
+ * App-Android / App-iOS implementations live under utssdk/app-*.
+ */
+
+/**
+ * Log a custom or recommended Analytics event.
+ * @param name Event name (e.g. sign_up, purchase). Max 40 chars, alphanumeric + underscore.
+ * @param params JSON string of flat string params, e.g. {"device":"ios/iPhone","uid":"1"}
+ */
+export declare function logEvent(name : string, params ?: string | null) : void
+
+/**
+ * Bind events to a signed-in user. Pass null to clear.
+ */
+export declare function setUserId(userId : string | null) : void
+
+/**
+ * Set a user property (string value). Pass null value to clear.
+ */
+export declare function setUserProperty(name : string, value : string | null) : void
+
+/**
+ * Enable or disable Analytics collection.
+ */
+export declare function setAnalyticsCollectionEnabled(enabled : boolean) : void
+
+/**
+ * Ensure FirebaseApp is initialized. Safe to call multiple times.
+ * @returns true if Analytics instance is ready
+ */
+export declare function configure() : boolean

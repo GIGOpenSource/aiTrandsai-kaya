@@ -1,0 +1,118 @@
+{
+	"id": "tt-google-iap",
+	"displayName": "Android Billing IAP",
+	"version": "1.0.0",
+	"description": "uni-app x Android in-app billing plugin (Billing 9.1).",
+	"keywords": [
+		"Billing",
+		"IAP",
+		"subscription"
+	],
+	"repository": "",
+	"engines": {
+		"HBuilderX": "^3.6.8",
+		"uni-app": "^5.15",
+		"uni-app-x": "^5.15"
+	},
+	"dcloudext": {
+		"type": "uts",
+		"sale": {
+			"regular": {
+				"price": "9.90"
+			},
+			"sourcecode": {
+				"price": "59.90"
+			}
+		},
+		"contact": {
+			"qq": "3914078257"
+		},
+		"declaration": {
+			"ads": "无",
+			"data": "无",
+			"permissions": "无"
+		},
+		"npmurl": "",
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "x"
+	},
+	"uni_modules": {
+		"dependencies": [],
+		"encrypt": [],
+		"platforms": {
+			"cloud": {
+				"tcb": "x",
+				"aliyun": "x",
+				"alipay": "x"
+			},
+			"client": {
+				"uni-app": {
+					"vue": {
+						"vue2": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"vue3": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						}
+					},
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"vue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"nvue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "21"
+						},
+						"ios": "x",
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x",
+						"alipay": "x",
+						"toutiao": "x",
+						"baidu": "x",
+						"kuaishou": "x",
+						"jd": "x",
+						"harmony": "x",
+						"qq": "x",
+						"lark": "x",
+						"xhs": "x"
+					},
+					"quickapp": {
+						"huawei": "x",
+						"union": "x"
+					}
+				},
+				"uni-app-x": {
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "21"
+						},
+						"ios": "x",
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x"
+					}
+				}
+			}
+		}
+	}
+}

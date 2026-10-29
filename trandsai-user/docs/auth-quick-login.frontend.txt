@@ -1,0 +1,248 @@
+# 设备快速（临时）登录 — 前端对接
+
+> 基址：`https://www.trandsai.com`  
+> 鉴权：登录成功后业务请求带 `x-token`（与其它登录一致）
+
+---
+
+## 0. 结论（给产品 / 前端）
+
+| 能力 | 临时登录 guest | Google / Apple 绑定后 |
+|------|----------------|----------------------|
+| 聊天 / 列表 / 资料等业务 | ✅ | ✅ |
+| IAP 支付（Apple/Google 验单） | ❌ | ✅ |
+| 账号 user_id | 固定 | **同一 user_id**（进度不断） |
+
+临时账号标记：`platform=guest`，响应里 `is_guest=true`、`can_pay=false`。
+
+---
+
+## 1. 前端应传什么（设备唯一标识）
+
+### 必传：`device_id`
+
+持久化、跨重装尽量稳定的设备 ID（**不要**用每次启动变的 session id）。
+
+| 平台 | 推荐来源 |
+|------|----------|
+| iOS | `identifierForVendor`（IDFV），存 Keychain 更稳 |
+| Android | `ANDROID_ID`，或自建 UUID 首次生成后写入 SharedPreferences / Keystore |
+| 通用 | 首次安装生成 UUID v4，本地持久化；卸载重装会变成新临时账号（可接受） |
+
+规则：
+
+- 长度 **8～64**
+- 字符：`A-Za-z0-9._:-`
+- 禁止：`anonymous` / `unknown` / `null` / `undefined` 等
+
+### 同步 Header（强烈建议）
+
+| Header | 说明 |
+|--------|------|
+| `X-Device-Id` | 与 body.`device_id` 相同 |
+| `X-App-Key` | 马甲包：`trandsai` / `kaya`（账号按 app 隔离） |
+| `X-OS` | `ios` / `android`（可选，归因用） |
+| `X-Device-Model` | 可选 |
+| `Accept-Language` | 可选 |
+
+---
+
+## 2. 快速登录
+
+```http
+POST /api/auth/quick-login
+Content-Type: application/json
+X-Device-Id: <device_id>
+X-App-Key: trandsai
+
+{
+  "device_id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+  "nickname": "可选展示名"
+}
+```
+
+`device_id` 也可只放 Header（body 可省略）。
+
+成功：
+
+```json
+{
+  "ok": true,
+  "message": "登录成功",
+  "data": {
+    "token": "...",
+    "is_new": true,
+    "is_guest": true,
+    "can_pay": false,
+    "login_required_for_pay": true,
+    "user": {
+      "id": 1001,
+      "platform": "guest",
+      "is_guest": true,
+      "can_pay": false,
+      "nickname": "Guest7890",
+      "..."
+    }
+  }
+}
+```
+
+之后所有业务请求：
+
+```http
+x-token: <token>
+X-Device-Id: <device_id>
+```
+
+同一 `device_id` + `X-App-Key` 再次调用 → 登录同一临时账号（`is_new=false`）。
+
+---
+
+## 3. 绑定 Google / Apple（贴到临时账号）
+
+**关键：带着临时登录的 `x-token` 再调正式登录接口。**
+
+### Google
+
+```http
+POST /api/auth/googlelogin
+x-token: <guest_token>
+Content-Type: application/json
+
+{
+  "openId": "<google_sub_or_openId>",
+  "email": "a@gmail.com",
+  "name": "…",
+  "avatar": "…"
+}
+```
+
+### Apple
+
+```http
+POST /api/auth/applelogin
+x-token: <guest_token>
+Content-Type: application/json
+
+{
+  "identityToken": "<Apple id_token>",
+  "code": "可选 authorizationCode",
+  "nonce": "可选"
+}
+```
+
+行为：
+
+1. 若该 Google/Apple **从未**注册 → **升级当前 guest**：`platform` 变为 `google`/`apple`，**user_id 不变**，聊天/积分保留；`can_pay=true`
+2. 若该 Google/Apple **已有账号** → 登录到原正式账号（返回原 `user.id`）；前端应改用新 token（临时号数据不自动合并）
+3. 绑定成功后请用响应里的新 `token`（与旧 guest token 通常仍有效指向同一 id，但以最新为准）
+
+UI 建议：支付按钮若 `can_pay===false`，引导「使用 Google / Apple 登录后购买」。
+
+---
+
+## 4. 支付限制
+
+临时账号调以下接口会 **403**：
+
+- `POST /api/payment/verify-apple`
+- `POST /api/payment/verify-apple-receipt`
+- `POST /api/payment/verify-google-receipt`
+
+文案 key：`guest_cannot_pay`（中文：临时登录无法支付，请先使用 Google 或 Apple 登录绑定账号）。
+
+`GET /api/payment/vip-status` / `GET /api/auth/me` 会带：
+
+```json
+{ "is_guest": true, "can_pay": false, "platform": "guest" }
+```
+
+---
+
+## 5. 推荐前端流程
+
+```
+App 启动
+  → 读本地 device_id（无则生成并落盘）
+  → POST /api/auth/quick-login
+  → 存 token，正常使用
+
+用户点购买
+  → 若 can_pay=false → 弹 Google / Apple 登录
+  → 带当前 x-token 调 googlelogin / applelogin
+  → 刷新 me / vip-status，确认 can_pay=true
+  → 再走 IAP + verify-*
+```
+
+---
+
+## 6. 注销 / 取消注销（与 Google 同一套冷静期）
+
+注销仍走：
+
+```http
+POST /api/auth/delete-account
+x-token: <token>
+```
+
+成功后 token 作废。账号进入 **7 天冷静期**（`account_status=deleted`），不是立刻销户。
+
+### 再次快速登录（不要当成功登录）
+
+同一 `device_id` 再调 `POST /api/auth/quick-login`（**不要**带 `restore`）：
+
+- **7 天内**：`code=401`，**不发 token**。提示可取消注销。
+- **超过 7 天**：`code=403`，已销户；再调一次 quick-login 会开新游客号。
+
+```json
+{
+  "code": 401,
+  "message": "账户将在7天后注销，可取消注销后继续使用",
+  "results": {
+    "detail": "account_pending_deletion",
+    "account_status": "deleted",
+    "can_restore": true,
+    "grace_days": 7,
+    "days_left": 7,
+    "deleted_at": "…",
+    "purge_at": "…",
+    "user_id": 1001
+  }
+}
+```
+
+看 `code` 和 `results.detail === "account_pending_deletion"`，不要把这当登录成功。
+
+### 取消注销并登录（同一接口，对齐 Google）
+
+Google：`POST /api/auth/googlelogin` body 加 `"restore": true`  
+快速登录同样：
+
+```http
+POST /api/auth/quick-login
+Content-Type: application/json
+X-Device-Id: <device_id>
+
+{
+  "device_id": "<同一设备 id>",
+  "restore": true
+}
+```
+
+`cancel_deletion` 与 `restore` 等价。冷静期内成功则发新 token，`restored=true`，`user_id` 不变。
+
+邮箱账号取消注销仍用 `POST /api/auth/restore-account`（用户名密码）；游客没有密码，**必须用 quick-login + restore**。
+
+---
+
+## 7. 与其它登录关系
+
+| 接口 | 用途 |
+|------|------|
+| `POST /api/auth/quick-login` | 设备临时登录；冷静期取消注销加 `restore=true` |
+| `POST /api/auth/googlelogin` | Google；带 guest token 可绑定；注销恢复加 `restore=true` |
+| `POST /api/auth/applelogin` | Apple；同上 |
+| `POST /api/auth/delete-account` | 进入 7 天注销冷静期 |
+| `POST /api/auth/restore-account` | 邮箱密码取消注销（游客不要用） |
+| `POST /api/auth/login` | 邮箱密码 |
+| `GET /api/auth/me` | 看 `is_guest` / `can_pay` |

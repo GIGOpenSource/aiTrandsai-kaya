@@ -1,0 +1,2065 @@
+<template>
+  <view class="page" :style="{ backgroundColor: theme.bg }">
+    <view class="header" :style="{ backgroundColor: theme.bg, paddingTop: statusBar + 'px' }">
+      <view class="header-inner">
+        <view class="back-btn" @click="goBack">
+          <image class="back-ico" :src="theme.backIcon" mode="aspectFit" />
+        </view>
+        <view class="header-identity" @click="onHeaderTap">
+          <image v-if="companionAvatar" class="header-avatar" :src="companionAvatar" mode="aspectFill" />
+          <view v-else class="header-avatar" :style="{ backgroundColor: theme.inputBg }" />
+          <view class="header-identity-meta">
+            <view class="name-row">
+              <text class="chat-header-name" :style="{ color: theme.fg }">{{ companionName }}</text>
+              <view v-if="online" class="online-dot" />
+            </view>
+            <view class="header-status-wrap">
+              <text class="header-identity-status" :style="{ color: theme.muted }">{{ headerSub }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="menu-btn" @click="toggleMenu">
+          <text class="menu-btn-text" :style="{ color: theme.fg }">...</text>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="accessDenied" class="denied">
+      <text class="access-text" :style="{ color: theme.muted }">{{ labels.accessDenied }}</text>
+      <text class="access-back" :style="accessBackStyle" @click="goBack">{{ labels.back }}</text>
+    </view>
+
+    <view v-else class="chat-main">
+      <scroller
+        ref="chatScroll"
+        class="chat-scroll chat-invert"
+        scroll-direction="vertical"
+        :show-scrollbar="false"
+        :bounce="false"
+        :scrollable="listScrollable"
+        @scroll="onScroll"
+        @click="dismissComposer"
+      >
+      <view class="chat-stack">
+      <view ref="newest" class="scroll-anchor invert-item"></view>
+      <view class="chat-fill invert-item" :style="{ height: fillH + 'px' }"></view>
+      <view ref="chatBody" class="chat-body">
+      <text v-if="!historyLoading && !rows.length" class="empty-hint invert-item" :style="{ color: theme.muted }">{{ labels.noMessages }}</text>
+
+      <view class="invert-item" v-for="row in displayRows" :key="row.key">
+        <view v-if="row.kind === 'date'" class="date-sep">
+          <text
+            class="date-sep-label"
+            :style="{ color: theme.muted, backgroundColor: theme.inputBg, borderColor: theme.border }"
+          >{{ row.label }}</text>
+        </view>
+
+        <view v-else-if="row.kind === 'typing'" class="typing-row">
+          <image v-if="row.showAvatar && companionAvatar" class="avatar-sm" :src="companionAvatar" mode="aspectFill" />
+          <view v-else class="avatar-spacer" />
+          <view class="typing-bubble" :style="{ backgroundColor: theme.bubbleAi }">
+            <view class="typing-dot" :style="{ backgroundColor: theme.muted, opacity: typingDotOps[0] }" />
+            <view class="typing-dot" :style="{ backgroundColor: theme.muted, opacity: typingDotOps[1] }" />
+            <view class="typing-dot typing-dot-last" :style="{ backgroundColor: theme.muted, opacity: typingDotOps[2] }" />
+          </view>
+        </view>
+
+        <view v-else-if="row.sender === 'thinking'" class="center-row" :class="row.mtClass">
+          <text
+            class="bubble-thinking"
+            :style="{ color: theme.muted, backgroundColor: theme.inputBg, borderColor: theme.border }"
+            @click="onSysTap(row)"
+          >{{ row.text }}</text>
+        </view>
+        <view v-else-if="row.sender === 'filler'" class="center-row" :class="row.mtClass">
+          <text class="bubble-filler">{{ row.text }}</text>
+        </view>
+        <view v-else-if="row.sender === 'system'" class="center-row" :class="row.mtClass">
+          <text
+            class="bubble-system"
+            :style="{ color: theme.muted, backgroundColor: theme.inputBg, borderColor: theme.border }"
+          >{{ row.text }}</text>
+        </view>
+
+        <view v-else-if="row.sender === 'user'" class="bubble-row-user" :class="row.mtClass">
+          <view class="bubble-col bubble-col-user">
+            <text v-if="row.footTime" class="foot-time foot-time-user" :style="{ color: theme.muted }">{{ row.footTime }}</text>
+            <view class="bubble-with-status">
+              <view v-if="row.sending" class="send-status">
+                <view class="send-spin" :style="{ transform: 'rotate(' + sendSpinDeg + 'deg)' }" />
+              </view>
+              <view
+                v-else-if="row.unpaid"
+                class="send-status"
+                @click="onUnpaidTap"
+              >
+                <view class="send-fail">
+                  <text class="send-fail-mark">!</text>
+                </view>
+              </view>
+              <view v-else-if="row.pending" class="send-status">
+                <view class="send-fail">
+                  <text class="send-fail-mark">!</text>
+                </view>
+              </view>
+              <view v-if="row.momentImage || row.momentCaption" class="moment-card" @longpress="onMsgLong(row)">
+                <text class="moment-caption">{{ row.momentCaption }}</text>
+                <image
+                  v-if="row.momentImage"
+                  class="moment-image"
+                  :src="row.momentImage"
+                  mode="aspectFill"
+                  @click="preview(row.momentImage)"
+                />
+                <view v-if="row.momentLiked" class="moment-like-status">
+                  <image class="like-heart" src="/static/message/sel.png" mode="aspectFit" />
+                  <text class="like-text">{{ labels.liked }}</text>
+                </view>
+              </view>
+              <view
+                v-else
+                class="chat-bubble-user"
+                :style="{ maxWidth: '520rpx' }"
+                @longpress="onMsgLong(row)"
+              >
+                <text class="chat-bubble-user-text">{{ row.text }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view v-else class="bubble-row-ai" :class="row.mtClass">
+          <image v-if="row.showAvatar && companionAvatar" class="avatar-sm" :src="companionAvatar" mode="aspectFill" />
+          <view v-else class="avatar-spacer" />
+          <view class="bubble-col">
+            <text v-if="row.footTime" class="foot-time" :style="{ color: theme.muted }">{{ row.footTime }}</text>
+            <image
+              v-if="row.contentType === 'image' && row.imageUrl"
+              class="chat-msg-image"
+              :src="row.imageUrl"
+              mode="widthFix"
+              @click="preview(row.imageUrl)"
+              @longpress="onMsgLong(row)"
+            />
+            <text
+              v-else
+              class="chat-bubble-ai"
+              :style="{ backgroundColor: theme.bubbleAi, color: theme.fg }"
+              @longpress="onMsgLong(row)"
+            >{{ row.text }}</text>
+            <text
+              v-if="row.trExpanded"
+              class="bubble-text-translated"
+              :style="{ color: theme.fg }"
+            >{{ row.trText }}</text>
+            <view
+              v-if="row.trChip"
+              class="translate-chip"
+              :style="{ backgroundColor: theme.inputBg, borderColor: theme.border }"
+              @click="onTranslate(row)"
+            >
+              <image class="translate-chip-ico" :src="theme.translateIcon" />
+              <text class="translate-chip-label" :style="{ color: theme.muted }">{{ row.trChip }}</text>
+              <text v-if="row.trAction" class="translate-chip-sep" :style="{ color: theme.muted }">|</text>
+              <text
+                v-if="row.trAction"
+                class="translate-chip-action"
+                :style="{ color: theme.muted }"
+                @click.stop="onTranslateAction(row)"
+              >{{ row.trAction }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="loadingMore" class="invert-item load-more-row">
+        <text class="empty-hint" :style="{ color: theme.muted }">{{ labels.loadingEarlier }}</text>
+      </view>
+      </view>
+      </view>
+      </scroller>
+      <view v-if="showEnterWait" class="list-cover enter-wait" :style="{ backgroundColor: theme.bg }">
+        <view class="skel-row" v-for="row in skelRows" :key="row.k">
+          <view class="skel-avatar" :style="{ backgroundColor: theme.inputBg }" />
+          <view class="skel-body">
+            <view class="skel-line" :style="{ backgroundColor: theme.inputBg, width: row.w1 + 'rpx' }" />
+            <view class="skel-line skel-line--sub" :style="{ backgroundColor: theme.inputBg, width: row.w2 + 'rpx' }" />
+          </view>
+        </view>
+      </view>
+      <view v-if="showEmoji || kb > 0" class="dismiss-catch" @click="dismissComposer" />
+    </view>
+
+    <view
+      v-if="!accessDenied"
+      ref="dock"
+      class="dock"
+      :style="{ backgroundColor: theme.bg, paddingBottom: dockLift + 'px' }"
+      @click.stop
+    >
+      <view
+        v-if="showEmoji && !companionDeleted"
+        class="composer-panel"
+        :style="{ backgroundColor: theme.modalBg, borderColor: theme.border, height: emojiH + 'px' }"
+        @click.stop
+      >
+        <scroller class="emoji-scroller" scroll-direction="vertical">
+          <view class="emoji-row" v-for="(erow, ri) in emojiRows" :key="ri">
+            <text class="emoji" v-for="(e, ei) in erow" :key="ei" @click="pickEmoji(e)">{{ e }}</text>
+          </view>
+        </scroller>
+      </view>
+      <view
+        v-if="ourMomentsBarText"
+        class="our-moments-chat-bar"
+        :style="{ backgroundColor: ourMomentsBarBg }"
+      >
+        <view
+          v-if="ourMomentsBarMode === 'countdown' && ourMomentsBarN != null"
+          class="our-moments-chat-bar-line"
+        >
+          <text
+            v-if="ourMomentsBarBefore"
+            class="our-moments-chat-bar-text"
+            :style="{ color: ourMomentsBarMuted }"
+          >{{ ourMomentsBarBefore }}</text>
+          <text
+            class="our-moments-chat-bar-n"
+            :style="{ color: ourMomentsBarEmph }"
+          >{{ ourMomentsBarN }}</text>
+          <text
+            v-if="ourMomentsBarAfter"
+            class="our-moments-chat-bar-text"
+            :style="{ color: ourMomentsBarMuted }"
+          >{{ ourMomentsBarAfter }}</text>
+        </view>
+        <text
+          v-else
+          class="our-moments-chat-bar-text"
+          :style="{ color: ourMomentsBarMuted }"
+        >{{ ourMomentsBarText }}</text>
+      </view>
+      <view class="composer-bar">
+        <view class="composer-field-wrap" :style="fieldWrapStyle">
+          <text v-if="companionDeleted" class="composer-deleted" :style="{ color: theme.muted }">{{ labels.companionDeleted }}</text>
+          <input
+            v-else
+            ref="composerInput"
+            class="composer-textarea"
+            type="text"
+            :value="input"
+            :placeholder="labels.placeholder"
+            :placeholder-color="theme.muted"
+            return-key-type="send"
+            :adjust-position="false"
+            :style="{ color: theme.fg }"
+            @input="onInput"
+            @focus="onFocus"
+            @return="handleSend"
+          />
+        </view>
+        <view class="composer-action" @click="toggleEmoji">
+          <image class="composer-action-ico" src="/static/message/smile.png" mode="aspectFill" />
+        </view>
+        <view class="composer-action" @click="handleSend">
+          <image
+            class="composer-action-ico"
+            src="/static/message/send.png"
+            mode="aspectFill"
+            :style="{ opacity: canSend ? 1 : 0.4 }"
+          />
+        </view>
+      </view>
+    </view>
+
+    <view v-if="menuOpen" class="menu-mask" @click="menuOpen = false">
+      <view class="header-menu" :style="menuBoxStyle" @click.stop>
+        <text class="menu-item" :style="{ color: theme.fg }" @click="goProfile">{{ labels.viewProfile }}</text>
+        <text class="menu-item" :style="{ color: theme.fg }" @click="reportCharacter">{{ labels.report }}</text>
+        <text class="menu-item menu-danger" @click="confirmClear">{{ labels.clearMessages }}</text>
+      </view>
+    </view>
+
+    <view v-if="showClearConfirm" class="clear-mask" :style="{ paddingBottom: (safeBottom + 15) + 'px' }" @click="closeClear">
+      <view class="clear-dialog" :style="clearDialogStyle" @click.stop>
+        <text class="clear-title" :style="{ color: theme.fg }">{{ labels.clearMessages }}</text>
+        <text class="clear-desc" :style="{ color: theme.muted }">{{ labels.confirmClear }}</text>
+        <view class="clear-actions">
+          <view class="clear-btn clear-btn-cancel" :style="clearCancelStyle" @click="closeClear">
+            <text class="clear-btn-text" :style="{ color: theme.fg }">{{ labels.cancel }}</text>
+          </view>
+          <view class="clear-btn clear-btn-ok" @click="doClear">
+            <text class="clear-btn-text clear-btn-ok-text">{{ labels.confirm }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- Our Moments：约上方 1/4；固定两行文案，不可点 -->
+    <view v-if="ourMomentsTipShow" class="our-moments-tip-mask" :style="ourMomentsTipMaskStyle">
+      <view class="our-moments-tip" :style="ourMomentsTipStyle">
+        <text
+          v-if="ourMomentsTipUnlocked && ourMomentsTipTitle"
+          class="our-moments-tip-title"
+          :style="{ color: ourMomentsTipTextColor }"
+        >{{ ourMomentsTipTitle }}</text>
+        <text
+          v-if="ourMomentsTipUnlocked && ourMomentsTipBody"
+          class="our-moments-tip-text"
+          :style="{ color: ourMomentsTipTextColor, marginTop: ourMomentsTipTitle ? '4px' : '0px' }"
+        >{{ ourMomentsTipBody }}</text>
+        <text
+          v-if="!ourMomentsTipUnlocked"
+          class="our-moments-tip-text"
+          :style="{ color: ourMomentsTipTextColor }"
+        >{{ ourMomentsTipText }}</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import { requireAuth } from "@/composables/useAuth";
+import { CHAT_EMOJIS } from "@/utils/chatEmojis";
+import {
+  readChatDraft,
+  writeChatDraft,
+  clearChatDraft,
+  consumeCommentImFocus,
+} from "@/utils/chatDraft";
+import { getJson, getItem, removeItem } from "@/utils/storage";
+
+const CMD = "nvue-chat-cmd";
+const STATE = "nvue-chat-state";
+const EMOJI_H = 220;
+const HEADER_H = 58;
+/** 底栏与键盘/屏幕底的固定间距（对齐 Vue composer-bar-pad-y ≈ 12px） */
+const DOCK_PAD = 12;
+
+/**
+ * 动画只用链式 setTimeout，且离页立刻作废 token。
+ * 不要用 setInterval：nvue 销毁实例后 clearInterval 容易变成 null 炸 taskCenter。
+ * 模块加载时锁死定时器 API，避免运行期被 Weex 置空。
+ */
+const WX_SET_TIMEOUT = typeof setTimeout === "function" ? setTimeout : function () { return 0; };
+const WX_CLEAR_TIMEOUT = typeof clearTimeout === "function" ? clearTimeout : function () {};
+
+function scheduleTimeout(fn, ms) {
+  try {
+    return WX_SET_TIMEOUT(fn, ms);
+  } catch (e) {
+    return null;
+  }
+}
+function cancelTimeout(id) {
+  if (id == null) return;
+  try {
+    WX_CLEAR_TIMEOUT(id);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+function chunk(list, n) {
+  const rows = [];
+  for (let i = 0; i < list.length; i += n) rows.push(list.slice(i, i + n));
+  return rows;
+}
+
+function readSafe() {
+  try {
+    const s = uni.getSystemInfoSync() || {};
+    const top = Number((s.safeAreaInsets && s.safeAreaInsets.top) || s.statusBarHeight) || 0;
+    const bottom = Number((s.safeAreaInsets && s.safeAreaInsets.bottom) || 0) || 0;
+    return { top, bottom };
+  } catch (e) {
+    return { top: 0, bottom: 0 };
+  }
+}
+
+/** nvue 不能用 Pinia；进页瞬间用本地 theme，避免默认浅色闪白 */
+function readInitialTheme() {
+  let isDark = true;
+  try {
+    isDark = String(getItem("theme") || "dark") !== "light";
+  } catch (e) {
+    isDark = true;
+  }
+  if (isDark) {
+    return {
+      isDark: true,
+      bg: "#0A0A0A",
+      fg: "#fafafa",
+      muted: "#b5b5b5",
+      border: "#444444",
+      inputBg: "rgba(255,255,255,0.05)",
+      surfaceInset: "rgba(255,255,255,0.05)",
+      borderSoft: "rgba(255,255,255,0.05)",
+      bubbleAi: "#1c1c1e",
+      modalBg: "#0a0a0a",
+      translateIcon: "/static/message/ico-translate-light.png",
+      backIcon: "/static/common/ico-arrow-left-dark.png",
+    };
+  }
+  return {
+    isDark: false,
+    bg: "#f5f5f5",
+    fg: "#0a0a0a",
+    muted: "rgba(10,10,10,0.6)",
+    border: "rgba(10,10,10,0.12)",
+    inputBg: "#ffffff",
+    surfaceInset: "#ffffff",
+    borderSoft: "rgba(10,10,10,0.12)",
+    bubbleAi: "#ffffff",
+    modalBg: "#ffffff",
+    translateIcon: "/static/message/ico-translate-dark.png",
+    backIcon: "/static/common/ico-arrow-left.png",
+  };
+}
+
+function syncPageNativeBg(color) {
+  if (!color) return;
+  try {
+    uni.setBackgroundColor({
+      backgroundColor: color,
+      backgroundColorTop: color,
+      backgroundColorBottom: color,
+    });
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    const pages = getCurrentPages();
+    const cur = pages && pages[pages.length - 1];
+    const wv = cur && typeof cur.$getAppWebview === "function" ? cur.$getAppWebview() : null;
+    if (wv && wv.setStyle) wv.setStyle({ background: color });
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+export default {
+  data() {
+    const safe = readSafe();
+    return {
+      companionId: "",
+      input: "",
+      companionName: "",
+      companionAvatar: "",
+      companionDeleted: false,
+      historyLoading: true,
+      pageReady: false,
+      loadingMore: false,
+      hasMore: true,
+      lastLoadMoreAt: 0,
+      accessDenied: false,
+      isSending: false,
+      online: false,
+      canReconnect: false,
+      menuOpen: false,
+      showEmoji: false,
+      kb: 0,
+      emojiH: EMOJI_H,
+      safeBottom: safe.bottom,
+      statusBar: safe.top,
+      /** 短会话垫块高度；满页为 0。不足一页禁止滑动，避免顶到导航头像下 */
+      fillH: 0,
+      listScrollable: false,
+      followUntil: 0,
+      /** 倒置列表 y≈0 为视觉底部；上滑后为 false，避免被状态推送拽回底 */
+      nearBottom: true,
+      lastRowKey: "",
+      showEnterWait: true,
+      showClearConfirm: false,
+      _pendingComposerFocus: false,
+      /** 键盘收起时测得的顶部垫块 / 消息区高度，弹键盘时按差值扣减 */
+      _fillRest: 0,
+      _vhRest: 0,
+      _bodyRest: 0,
+      _bodyH: 0,
+      _fillMeasureSeq: 0,
+      _fillSnap: null,
+      _scrollableSnap: false,
+      _ignoreFillUntil: 0,
+      typingDotOps: [0.35, 0.55, 0.85],
+      sendSpinDeg: 0,
+      skelRows: [
+        { k: "1", w1: 200, w2: 440 },
+        { k: "2", w1: 160, w2: 380 },
+        { k: "3", w1: 240, w2: 420 },
+        { k: "4", w1: 180, w2: 360 },
+        { k: "5", w1: 220, w2: 400 },
+        { k: "6", w1: 170, w2: 320 },
+      ],
+      /** 页面可见；hide 后立刻 false，避免离页后还收状态/贴底 */
+      _pageAlive: true,
+      _stateBound: false,
+      _typingTimer: null,
+      _typingToken: 0,
+      _typingPhase: 0,
+      _sendSpinTimer: null,
+      _sendSpinToken: 0,
+      _pendingReveal: false,
+      rows: [],
+      headerSub: "",
+      ourMomentsTip: null,
+      ourMomentsBarText: "",
+      ourMomentsBarMode: "",
+      ourMomentsBarN: null,
+      ourMomentsBarBefore: "",
+      ourMomentsBarAfter: "",
+      theme: readInitialTheme(),
+      labels: {
+        viewProfile: "",
+        report: "",
+        clearMessages: "",
+        confirmClear: "",
+        cancel: "",
+        confirm: "",
+        accessDenied: "",
+        back: "",
+        loading: "",
+        loadingEarlier: "",
+        noMessages: "",
+        companionDeleted: "",
+        placeholder: "",
+        copy: "",
+        liked: "",
+        ourMomentsUnlockedPaywallBody: "",
+      },
+      emojiRows: chunk(CHAT_EMOJIS, 8).slice(0, 8),
+      _kbLast: -1,
+      _hiddenAt: 0,
+      _ensureAt: 0,
+      _clearGuardUntil: 0,
+    };
+  },
+  computed: {
+    canSend() {
+      return !this.companionDeleted && !this.isSending && String(this.input || "").trim().length > 0;
+    },
+    displayRows() {
+      const list = this.rows || [];
+      const out = [];
+      for (let i = list.length - 1; i >= 0; i--) out.push(list[i]);
+      return out;
+    },
+    headerStyle() {
+      return {
+        backgroundColor: this.theme.bg,
+        paddingTop: this.statusBar + "px",
+      };
+    },
+    dockLift() {
+      if (this.kb > 0 && !this.showEmoji) return this.kb + DOCK_PAD;
+      return this.safeBottom + DOCK_PAD;
+    },
+    menuBoxStyle() {
+      return {
+        backgroundColor: this.theme.modalBg,
+        borderColor: this.theme.border,
+        top: this.statusBar + HEADER_H + 12 + "px",
+      };
+    },
+    fieldWrapStyle() {
+      return {
+        backgroundColor: this.theme.surfaceInset,
+        borderColor: this.theme.borderSoft,
+      };
+    },
+    clearDialogStyle() {
+      return {
+        backgroundColor: this.theme.modalBg,
+        borderColor: this.theme.border,
+      };
+    },
+    clearCancelStyle() {
+      return {
+        backgroundColor: this.theme.inputBg,
+        borderColor: this.theme.border,
+      };
+    },
+    accessBackStyle() {
+      return {
+        backgroundColor: this.theme.inputBg,
+        color: this.theme.fg,
+        borderColor: this.theme.border,
+      };
+    },
+    /** 对齐 AppGenderSelectModal：深色 #2c2c2c / 浅色 #ffffff */
+    ourMomentsTipStyle() {
+      const dark = this.theme && this.theme.isDark !== false;
+      const base = {
+        backgroundColor: dark ? "#2c2c2c" : "#ffffff",
+      };
+      if (!dark) {
+        base.boxShadow = "0 8px 14px rgba(0,0,0,0.12)";
+      }
+      return base;
+    },
+    ourMomentsTipTextColor() {
+      const dark = this.theme && this.theme.isDark !== false;
+      return dark ? "#ffffff" : "#0a0a0a";
+    },
+    ourMomentsTipMaskStyle() {
+      let h = 640;
+      try {
+        const s = uni.getSystemInfoSync() || {};
+        h = Number(s.windowHeight || s.screenHeight) || 640;
+      } catch (e) {
+        /* ignore */
+      }
+      return { paddingTop: Math.round(h * 0.25) + "px" };
+    },
+    ourMomentsTipShow() {
+      const tip = this.ourMomentsTip;
+      if (!tip) return false;
+      if (typeof tip === "string") return !!String(tip).trim();
+      return !!String(tip.text || "").trim();
+    },
+    ourMomentsTipText() {
+      const tip = this.ourMomentsTip;
+      if (!tip) return "";
+      if (typeof tip === "string") return tip;
+      return String(tip.text || "");
+    },
+    ourMomentsTipUnlocked() {
+      const tip = this.ourMomentsTip;
+      return !!(tip && typeof tip === "object" && tip.toast === "unlocked");
+    },
+    ourMomentsTipTitle() {
+      const tip = this.ourMomentsTip;
+      if (!tip || typeof tip !== "object") return "";
+      return String(tip.title || "").trim();
+    },
+    ourMomentsTipBody() {
+      // 第 2 行：一整句副文案（i18n），不拆段
+      const fromLabel = String(
+        (this.labels && this.labels.ourMomentsUnlockedPaywallBody) || ""
+      ).trim();
+      if (fromLabel) return fromLabel;
+      const tip = this.ourMomentsTip;
+      if (!tip || typeof tip !== "object") return "";
+      const full = String(tip.text || "").trim();
+      const head = this.ourMomentsTipTitle;
+      if (head && full.startsWith(head)) return full.slice(head.length).trim();
+      return full;
+    },
+    ourMomentsBarBg() {
+      const dark = this.theme && this.theme.isDark !== false;
+      return dark ? "#2c2c2c" : "#ededed";
+    },
+    ourMomentsBarMuted() {
+      const dark = this.theme && this.theme.isDark !== false;
+      return dark ? "rgba(255,255,255,0.55)" : "#8a8a8a";
+    },
+    ourMomentsBarEmph() {
+      const dark = this.theme && this.theme.isDark !== false;
+      return dark ? "#ffffff" : "#0a0a0a";
+    },
+  },
+  onLoad(query) {
+    if (!requireAuth()) return;
+    this._pageAlive = true;
+    this.companionId = String((query && query.id) || "");
+    this.lastRowKey = "";
+    this.rows = [];
+    this.companionName = "";
+    // 进页立刻清空：绝不能先露出上一位的头像
+    this.companionAvatar = "";
+    this.companionDeleted = false;
+    this.fillH = 0;
+    this.listScrollable = false;
+    this._pendingReveal = false;
+    this.historyLoading = true;
+    this.pageReady = false;
+    this._chatPageViewTracked = false;
+    this.showEnterWait = true;
+    syncPageNativeBg(this.theme.bg);
+    const wantComposerFocus =
+      this.companionId && consumeCommentImFocus(this.companionId);
+    if (wantComposerFocus) this._pendingComposerFocus = true;
+    else this.applyIcebreaker();
+    this.restoreDraft();
+    this.bindHostState();
+    this.emitCmd({ type: "boot", companionId: this.companionId });
+  },
+  onShow() {
+    this._pageAlive = true;
+    this.bindHostState();
+    // 键盘弹起也会闪 onHide/onShow，短间隔不当成离页，否则会把键盘收掉
+    const hiddenMs = Date.now() - (this._hiddenAt || 0);
+    if (this._hiddenAt && hiddenMs > 280 && this.kb <= 0) {
+      this.resetComposerLift();
+    }
+    this._hiddenAt = 0;
+    syncPageNativeBg(this.theme && this.theme.bg);
+    if (!this.companionId) return;
+    this.syncUiAnims();
+    this.emitCmd({ type: "show" });
+  },
+  onHide() {
+    // 离页立刻停手：nvue 实例可能晚销毁，定时器/贴底会炸 taskCenter
+    this._hiddenAt = Date.now();
+    this._pageAlive = false;
+    this.stopUiAnims();
+    this.unbindHostState();
+    this.persistDraft();
+    this.emitCmd({ type: "hide" });
+  },
+    mounted() {
+    this.bindKeyboard();
+    this.scheduleMeasureFill();
+  },
+  beforeDestroy() {
+    this._pageAlive = false;
+    this.stopUiAnims();
+    this.unbindHostState();
+    this.persistDraft();
+    this.emitCmd({ type: "leave" });
+    if (this._kbCb && typeof uni.offKeyboardHeightChange === "function") {
+      uni.offKeyboardHeightChange(this._kbCb);
+      this._kbCb = null;
+    }
+  },
+  methods: {
+    emitCmd(payload) {
+      uni.$emit(CMD, payload);
+    },
+    bindHostState() {
+      if (this._stateBound) return;
+      uni.$on(STATE, this.onHostState);
+      this._stateBound = true;
+    },
+    unbindHostState() {
+      if (!this._stateBound) return;
+      uni.$off(STATE, this.onHostState);
+      this._stateBound = false;
+    },
+    /** 遮罩揭开且资料/历史加载成功后，通知 Vue host 上报 chat_page_view */
+    reportChatPageView() {
+      if (this._chatPageViewTracked || !this._pageAlive) return;
+      if (!this.pageReady || this.accessDenied) return;
+      this._chatPageViewTracked = true;
+      this.emitCmd({ type: "pageView", companionId: this.companionId });
+    },
+    stopUiAnims() {
+      this._typingToken = (this._typingToken || 0) + 1;
+      this._sendSpinToken = (this._sendSpinToken || 0) + 1;
+      cancelTimeout(this._typingTimer);
+      cancelTimeout(this._sendSpinTimer);
+      this._typingTimer = null;
+      this._sendSpinTimer = null;
+      this.typingDotOps = [0.35, 0.55, 0.85];
+      this.sendSpinDeg = 0;
+    },
+    syncUiAnims() {
+      if (!this._pageAlive) {
+        this.stopUiAnims();
+        return;
+      }
+      const list = this.rows || [];
+      let hasTyping = false;
+      let hasSending = false;
+      for (let i = 0; i < list.length; i++) {
+        const r = list[i];
+        if (!r) continue;
+        if (r.kind === "typing") hasTyping = true;
+        if (r.sending && !r.pending) hasSending = true;
+        if (hasTyping && hasSending) break;
+      }
+      if (hasTyping) this.ensureTypingAnim();
+      else this.stopTypingAnim();
+      if (hasSending) this.ensureSendSpinAnim();
+      else this.stopSendSpinAnim();
+    },
+    stopTypingAnim() {
+      this._typingToken = (this._typingToken || 0) + 1;
+      cancelTimeout(this._typingTimer);
+      this._typingTimer = null;
+      this.typingDotOps = [0.35, 0.55, 0.85];
+    },
+    ensureTypingAnim() {
+      if (!this._pageAlive) return;
+      if (this._typingTimer != null) return;
+      const token = (this._typingToken = (this._typingToken || 0) + 1);
+      const tick = () => {
+        if (!this._pageAlive || token !== this._typingToken) {
+          this._typingTimer = null;
+          return;
+        }
+        const phase = (this._typingPhase = ((this._typingPhase || 0) + 1) % 3);
+        if (phase === 0) this.typingDotOps = [1, 0.35, 0.35];
+        else if (phase === 1) this.typingDotOps = [0.35, 1, 0.35];
+        else this.typingDotOps = [0.35, 0.35, 1];
+        this._typingTimer = scheduleTimeout(tick, 320);
+      };
+      this._typingTimer = scheduleTimeout(tick, 40);
+    },
+    stopSendSpinAnim() {
+      this._sendSpinToken = (this._sendSpinToken || 0) + 1;
+      cancelTimeout(this._sendSpinTimer);
+      this._sendSpinTimer = null;
+      this.sendSpinDeg = 0;
+    },
+    ensureSendSpinAnim() {
+      if (!this._pageAlive) return;
+      if (this._sendSpinTimer != null) return;
+      const token = (this._sendSpinToken = (this._sendSpinToken || 0) + 1);
+      const tick = () => {
+        if (!this._pageAlive || token !== this._sendSpinToken) {
+          this._sendSpinTimer = null;
+          return;
+        }
+        this.sendSpinDeg = ((this.sendSpinDeg || 0) + 30) % 360;
+        this._sendSpinTimer = scheduleTimeout(tick, 90);
+      };
+      this._sendSpinTimer = scheduleTimeout(tick, 40);
+    },
+    onHostState(s) {
+      if (!this._pageAlive) return;
+      if (!s || (s.companionId && s.companionId !== this.companionId)) return;
+      const prevLast = this.lastRowKey;
+      const wasLoadingMore = this.loadingMore;
+      const prevHadTyping = (this.rows || []).some((r) => r && r.kind === "typing");
+      if (Array.isArray(s.rows)) this.rows = s.rows;
+      if (typeof s.companionName === "string") this.companionName = s.companionName;
+      // 空字符串也要写入，避免一直卡在上一位头像；只接受当前 companionId 的状态
+      if (Object.prototype.hasOwnProperty.call(s, "companionAvatar")) {
+        this.companionAvatar = String(s.companionAvatar || "");
+      }
+      if (typeof s.companionDeleted === "boolean") this.companionDeleted = s.companionDeleted;
+      if (typeof s.headerSub === "string") this.headerSub = s.headerSub;
+      if (Object.prototype.hasOwnProperty.call(s, "ourMomentsTip")) {
+        this.ourMomentsTip = s.ourMomentsTip || null;
+      }
+      if (s.ourMomentsBar && typeof s.ourMomentsBar === "object") {
+        this.ourMomentsBarText = String(s.ourMomentsBar.text || "").trim();
+        this.ourMomentsBarMode = String(s.ourMomentsBar.mode || "");
+        this.ourMomentsBarN =
+          s.ourMomentsBar.n == null ? null : Number(s.ourMomentsBar.n);
+        this.ourMomentsBarBefore = String(s.ourMomentsBar.before || "");
+        this.ourMomentsBarAfter = String(s.ourMomentsBar.after || "");
+      } else if (typeof s.ourMomentsBarText === "string") {
+        this.ourMomentsBarText = s.ourMomentsBarText;
+        this.ourMomentsBarMode = "";
+        this.ourMomentsBarN = null;
+        this.ourMomentsBarBefore = "";
+        this.ourMomentsBarAfter = "";
+      }
+      if (typeof s.online === "boolean") this.online = s.online;
+      if (typeof s.canReconnect === "boolean") this.canReconnect = s.canReconnect;
+      if (typeof s.historyLoading === "boolean") this.historyLoading = s.historyLoading;
+      if (typeof s.pageReady === "boolean") this.pageReady = s.pageReady;
+      if (typeof s.loadingMore === "boolean") this.loadingMore = s.loadingMore;
+      if (typeof s.accessDenied === "boolean") this.accessDenied = s.accessDenied;
+      if (typeof s.isSending === "boolean") this.isSending = s.isSending;
+      if (typeof s.hasMore === "boolean") this.hasMore = s.hasMore;
+      if (s.theme) {
+        const nextBg = s.theme.bg;
+        const bgChanged = nextBg && nextBg !== this.theme.bg;
+        this.theme = Object.assign({}, this.theme, s.theme);
+        if (bgChanged) syncPageNativeBg(this.theme.bg);
+      }
+      if (s.labels) this.labels = Object.assign({}, this.labels, s.labels);
+      if (this.companionDeleted) {
+        this.input = "";
+        this.showEmoji = false;
+      }
+      // typing 开/关不算新消息尾
+      this.lastRowKey = this.tailMessageKey(this.rows);
+      this.syncUiAnims();
+      if (this.pageReady && !this.showEnterWait) this.reportChatPageView();
+      // 进页遮罩：先量垫块再揭开，避免短列表先贴底再跳顶闪一下
+      if (this.showEnterWait && (this.rows.length || this.historyLoading === false)) {
+        this.scheduleMeasureFill({ reveal: true });
+      }
+      const prepended = wasLoadingMore || this.loadingMore;
+      if (prepended) {
+        this.scheduleMeasureFill(this.kb > 0 || this.showEmoji ? { bodyOnly: true } : null);
+        return;
+      }
+      const appended = !!this.lastRowKey && this.lastRowKey !== prevLast;
+      const typingStarted =
+        !prevHadTyping && (this.rows || []).some((r) => r && r.kind === "typing");
+      if (this.kb > 0 || this.showEmoji) this.scheduleMeasureFill({ bodyOnly: true });
+      else this.scheduleMeasureFill();
+      // 已在底部时不要 scrollToElement：倒置列表会整段重排，表现为「消息闪没再出现」
+      // 仅当不在底部但仍处于 follow 窗口（极少）时才补滚
+      if (
+        (appended || typingStarted) &&
+        !this.nearBottom &&
+        Date.now() < this.followUntil
+      ) {
+        this.$nextTick(() => this.scrollToNewest());
+      }
+    },
+    tailMessageKey(rows) {
+      const list = rows || [];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const r = list[i];
+        if (!r || r.kind === "typing" || r.kind === "date") continue;
+        return String(r.key || "");
+      }
+      return "";
+    },
+    shouldFollowLatest() {
+      return this.nearBottom || Date.now() < this.followUntil;
+    },
+    measureScrollViewport() {
+      this.scheduleMeasureFill();
+    },
+    /** 只重测，不清零——清零会让 minHeight 瞬间跳公式高度，整页闪一下 */
+    refreshScrollViewport() {
+      this.scheduleMeasureFill();
+    },
+    scheduleMeasureFill(opts) {
+      if (!this._pageAlive) return;
+      if (opts && opts.reveal) this._pendingReveal = true;
+      const bodyOnly = !!(opts && opts.bodyOnly) || ((this.kb > 0 || this.showEmoji) && !(opts && opts.reveal));
+      this.$nextTick(() => {
+        if (!this._pageAlive) return;
+        if (bodyOnly) {
+          this.measureBodyForKb();
+          return;
+        }
+        this.measureChatFill();
+        scheduleTimeout(() => {
+          if (this._pageAlive) this.measureChatFill();
+        }, 80);
+        if (this._pendingReveal) {
+          scheduleTimeout(() => {
+            if (this._pageAlive) this.revealEnterIfNeeded();
+          }, 220);
+        }
+      });
+    },
+    fillExtra() {
+      try {
+        const s = uni.getSystemInfoSync() || {};
+        return Math.round((96 * (Number(s.windowWidth) || 375)) / 750);
+      } catch (e) {
+        return 48;
+      }
+    },
+    snapRestFill() {
+      if (this._fillSnap != null) return;
+      this._fillSnap = Math.max(0, Number(this._fillRest) || Number(this.fillH) || 0);
+      this._scrollableSnap = !!this.listScrollable;
+    },
+    restoreRestFill() {
+      this._fillMeasureSeq += 1;
+      const rest =
+        this._fillSnap != null
+          ? Math.max(0, Number(this._fillSnap) || 0)
+          : Math.max(0, Number(this._fillRest) || 0);
+      const bodyNow = Math.round(Number(this._bodyH) || Number(this._bodyRest) || 0);
+      const bodyRest = Math.round(Number(this._bodyRest) || bodyNow);
+      const grown = Math.max(0, bodyNow - bodyRest);
+      const vh = Math.round(Number(this._vhRest) || 0);
+      const extra = this.fillExtra();
+      let next = Math.max(0, rest - grown);
+      let overflows = next === 0;
+      if (vh >= 80 && bodyNow > 0) {
+        overflows = bodyNow + extra + 2 >= vh;
+        next = overflows ? 0 : Math.max(0, vh - bodyNow - extra);
+      }
+      this._fillSnap = null;
+      this.fillH = next;
+      this._fillRest = next;
+      this._bodyRest = bodyNow || this._bodyRest;
+      this.listScrollable = overflows;
+      // 只挡住收起瞬间的矮视口测量；稍后按满高重测，避免垫块过大顶进导航
+      this._ignoreFillUntil = Date.now() + 40;
+      scheduleTimeout(() => {
+        if (!this._pageAlive || this.kb > 0 || this.showEmoji) return;
+        this._ignoreFillUntil = 0;
+        this.scheduleMeasureFill();
+      }, 160);
+    },
+    closeEmojiPanel() {
+      if (!this.showEmoji) return;
+      this.showEmoji = false;
+      // 从键盘切到表情时 hideKb 是异步的，h=0 曾被直接 return，kb 会残留；
+      // 关掉表情必须清掉，否则 dock 仍按键盘高度垫，输入框浮在半空。
+      this.kb = 0;
+      this._kbLast = 0;
+      this.restoreRestFill();
+    },
+    /** 弹键盘/表情只从收起时的垫块上扣高度；关闭时还原，绝不拿缩小后的视口重算（否则短列表会贴底） */
+    syncFillToLift() {
+      const lift = this.showEmoji ? EMOJI_H : Math.max(0, this.kb || 0);
+      const rest =
+        this._fillSnap != null
+          ? Math.max(0, Number(this._fillSnap) || 0)
+          : Math.max(0, Number(this._fillRest) || 0);
+      const bodyNow = Math.round(Number(this._bodyH) || Number(this._bodyRest) || 0);
+      const bodyRest = Math.round(Number(this._bodyRest) || bodyNow);
+      const grown = Math.max(0, bodyNow - bodyRest);
+      const next = Math.max(0, rest - lift - grown);
+      if (next !== this.fillH) this.fillH = next;
+    },
+    measureBodyForKb() {
+      if (!this._pageAlive || (this.kb <= 0 && !this.showEmoji)) {
+        this.syncFillToLift();
+        return;
+      }
+      const applyBh = (bhRaw) => {
+        const bh = Math.round(Math.abs(Number(bhRaw) || 0));
+        if (bh < 8 && (this.rows || []).length) return;
+        this._bodyH = bh;
+        this.syncFillToLift();
+      };
+      try {
+        const dom = weex.requireModule("dom");
+        const body = this.nodeOf("chatBody");
+        if (dom && body && typeof dom.getComponentRect === "function") {
+          dom.getComponentRect(body, (b) => {
+            if (this._pageAlive) applyBh(b && b.size && b.size.height);
+          });
+          return;
+        }
+      } catch (e) {
+        /* fall through */
+      }
+      this.syncFillToLift();
+    },
+    /**
+     * 是否满屏只比「消息区真实高度」和「列表可视高度」。
+     * 不能数条数，也不能用带 minHeight/垫块之后的 contentSize（会循环误判）。
+     */
+    applyFillHeights(vhRaw, bhRaw) {
+      if (Date.now() < this._ignoreFillUntil) return;
+      const vh = Math.round(Math.abs(Number(vhRaw) || 0));
+      const bh = Math.round(Math.abs(Number(bhRaw) || 0));
+      if (vh < 80) return;
+      if (bh < 8 && (this.rows || []).length) return;
+      if (this.kb > 0 || this.showEmoji) {
+        this._bodyH = bh;
+        this.syncFillToLift();
+        return;
+      }
+      // 表情/键盘收起后仍可能收到「缩小视口」的过期测量，不能当成满屏
+      if (this._vhRest >= 80 && vh + 24 < this._vhRest) {
+        this._bodyH = bh;
+        this.syncFillToLift();
+        return;
+      }
+      this._vhRest = vh;
+      this._bodyH = bh;
+      this._bodyRest = bh;
+      const extra = this.fillExtra();
+      const used = bh + extra;
+      const overflows = used + 2 >= vh;
+      const next = overflows ? 0 : Math.max(0, vh - used);
+      this._fillRest = next;
+      if (next !== this.fillH) this.fillH = next;
+      if (this.listScrollable !== overflows) this.listScrollable = overflows;
+      this.revealEnterIfNeeded();
+    },
+    revealEnterIfNeeded() {
+      if (!this._pendingReveal || !this.showEnterWait) return;
+      this._pendingReveal = false;
+      this.nearBottom = true;
+      this.$nextTick(() => {
+        if (!this._pageAlive) return;
+        this.showEnterWait = false;
+        this.reportChatPageView();
+        if (this.listScrollable) this.pinNewest();
+        this.tryFocusComposer();
+      });
+    },
+    measureChatFill(onDone) {
+      const finish = () => {
+        if (typeof onDone === "function") onDone();
+      };
+      if (!this._pageAlive) {
+        finish();
+        return;
+      }
+      const seq = ++this._fillMeasureSeq;
+      const lifted = this.kb > 0 || this.showEmoji;
+      try {
+        const dom = weex.requireModule("dom");
+        const scroller = this.nodeOf("chatScroll");
+        const body = this.nodeOf("chatBody");
+        if (dom && scroller && body && typeof dom.getComponentRect === "function") {
+          dom.getComponentRect(scroller, (s) => {
+            if (!this._pageAlive || seq !== this._fillMeasureSeq) {
+              finish();
+              return;
+            }
+            dom.getComponentRect(body, (b) => {
+              if (this._pageAlive && seq === this._fillMeasureSeq) {
+                const vh = s && s.size && s.size.height;
+                const bh = b && b.size && b.size.height;
+                if (lifted || this.kb > 0 || this.showEmoji) {
+                  this._bodyH = Math.round(Math.abs(Number(bh) || 0));
+                  this.syncFillToLift();
+                } else {
+                  this.applyFillHeights(vh, bh);
+                }
+              }
+              finish();
+            });
+          });
+          return;
+        }
+      } catch (e) {
+        /* fall through */
+      }
+      try {
+        const q = uni.createSelectorQuery().in(this);
+        q.select(".chat-scroll").boundingClientRect();
+        q.select(".chat-body").boundingClientRect();
+        q.exec((res) => {
+          if (this._pageAlive) {
+            const scrollRect = res && res[0];
+            const bodyRect = res && res[1];
+            this.applyFillHeights(
+              scrollRect && scrollRect.height,
+              bodyRect && bodyRect.height
+            );
+          }
+          finish();
+        });
+      } catch (e) {
+        finish();
+      }
+    },
+    resetComposerLift() {
+      this.kb = 0;
+      this._kbLast = 0;
+      this.showEmoji = false;
+      this.restoreRestFill();
+    },
+    applyKbFill(h) {
+      if (h > 0) {
+        this.snapRestFill();
+        this.kb = h;
+        this.syncFillToLift();
+        return;
+      }
+      this.kb = 0;
+      if (this.showEmoji) this.syncFillToLift();
+      else this.restoreRestFill();
+    },
+    bindKeyboard() {
+      this._kbCb = (res) => {
+        const h = Math.max(0, Math.round(Number(res && res.height) || 0));
+        if (h > 0 && this.showEmoji) this.showEmoji = false;
+        if (h === this._kbLast) {
+          if (!this._pageAlive) this.applyKbFill(h);
+          return;
+        }
+        this._kbLast = h;
+        this.applyKbFill(h);
+        if (h === 0 || !this._pageAlive) return;
+        this.nearBottom = true;
+        this.followUntil = Date.now() + 8000;
+        // 仅满页会话贴底；短列表弹键盘若 scrollToNewest，开篇语会被顶出屏幕
+        if (this._fillRest === 0) {
+          this.$nextTick(() => {
+            if (this._pageAlive) this.scrollToNewest();
+          });
+        }
+      };
+      if (typeof uni.onKeyboardHeightChange === "function") {
+        uni.onKeyboardHeightChange(this._kbCb);
+      }
+    },
+    nodeOf(refName) {
+      const el = this.$refs[refName];
+      if (!el) return null;
+      return Array.isArray(el) ? el[0] : el;
+    },
+    scrollToNewest() {
+      if (!this._pageAlive) return;
+      try {
+        const node = this.nodeOf("newest");
+        if (!node) return;
+        weex.requireModule("dom").scrollToElement(node, { offset: 0, animated: false });
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    /** 进页贴底：立刻一次即可，避免 nextTick 再滚一次叠闪 */
+    pinNewest() {
+      if (!this._pageAlive) return;
+      this.scrollToNewest();
+    },
+    onScroll(e) {
+      const y = Math.abs((e && e.contentOffset && e.contentOffset.y) || 0);
+      const atBottom = y < 100;
+      if (!atBottom && this.nearBottom) {
+        this.followUntil = 0;
+      }
+      this.nearBottom = atBottom;
+      if (this.showEnterWait || this.loadingMore || !this.hasMore) return;
+      if (!this.listScrollable) return;
+      const ch = Number((e && e.contentSize && e.contentSize.height) || 0);
+      if (ch > 0 && y >= ch - 180) this.loadMore();
+    },
+    onListTap() {
+      this.dismissComposer();
+    },
+    dismissComposer() {
+      this.menuOpen = false;
+      this.closeEmojiPanel();
+      this.hideKb();
+    },
+    hideKb() {
+      try {
+        uni.hideKeyboard();
+      } catch (e) {
+        /* ignore */
+      }
+      try {
+        if (typeof plus !== "undefined" && plus.key && plus.key.hideSoftKeybord) {
+          plus.key.hideSoftKeybord();
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    },
+    onHeaderTap() {
+      if (this.canReconnect) {
+        this.emitCmd({ type: "reconnect" });
+        return;
+      }
+      this.goProfile();
+    },
+    onInput(e) {
+      this.input = (e && e.detail && e.detail.value) || "";
+      this.ensureSocket();
+      this.persistDraft();
+    },
+    onFocus() {
+      this.closeEmojiPanel();
+      this.ensureSocket();
+      this.nearBottom = true;
+      this.followUntil = Date.now() + 8000;
+    },
+    tryFocusComposer() {
+      if (!this._pendingComposerFocus || this.companionDeleted) return;
+      this._pendingComposerFocus = false;
+      this.$nextTick(() => {
+        if (!this._pageAlive) return;
+        try {
+          this.$refs.composerInput && this.$refs.composerInput.focus();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    },
+    ensureSocket() {
+      const now = Date.now();
+      if (now - this._ensureAt < 1500) return;
+      this._ensureAt = now;
+      this.emitCmd({ type: "ensure" });
+    },
+    persistDraft() {
+      if (!this.companionId || this.companionDeleted) return;
+      writeChatDraft(this.companionId, this.input);
+    },
+    restoreDraft() {
+      if (!this.companionId || this.companionDeleted) return;
+      if (String(this.input || "").trim()) return;
+      const d = readChatDraft(this.companionId);
+      if (d) this.input = d;
+    },
+    applyIcebreaker() {
+      if (!this.companionId) return false;
+      const key = `icebreaker:${this.companionId}`;
+      const data = getJson(key);
+      if (!data) return false;
+      removeItem(key);
+      if (data.is_first === true && data.icebreaker) {
+        this.input = String(data.icebreaker).replace(/[\u200B\u200C\u200D\uFEFF]/g, "");
+        writeChatDraft(this.companionId, this.input);
+        return true;
+      }
+      return false;
+    },
+    loadMore() {
+      if (this.loadingMore || !this.hasMore || !this.companionId) return;
+      const now = Date.now();
+      if (now - this.lastLoadMoreAt < 450) return;
+      this.lastLoadMoreAt = now;
+      this.emitCmd({ type: "loadMore" });
+    },
+    handleSend() {
+      if (!this.canSend || !this.companionId) return;
+      const text = String(this.input || "").trim();
+      this.input = "";
+      clearChatDraft(this.companionId);
+      this.closeEmojiPanel();
+      this.isSending = true;
+      this.nearBottom = true;
+      this.followUntil = Date.now() + 15000;
+      this.emitCmd({ type: "send", text });
+      // 不在发送时贴底：已在底部，再 scrollToElement 会把刚出现的气泡闪没一次
+    },
+    pickEmoji(e) {
+      this.input = String(this.input || "") + e;
+      this.persistDraft();
+    },
+    toggleEmoji() {
+      if (this.companionDeleted) return;
+      if (this.showEmoji) {
+        this.closeEmojiPanel();
+        return;
+      }
+      this.snapRestFill();
+      this.showEmoji = true;
+      this.hideKb();
+      this.kb = 0;
+      this._kbLast = 0;
+      this.syncFillToLift();
+    },
+    toggleMenu() {
+      this.menuOpen = !this.menuOpen;
+    },
+    goBack() {
+      uni.navigateBack({
+        fail: () => uni.reLaunch({ url: "/pages/messages/index" }),
+      });
+    },
+    goProfile() {
+      this.menuOpen = false;
+      if (!this.companionId) return;
+      uni.navigateTo({
+        url: `/pages-sub/companion/index?id=${encodeURIComponent(this.companionId)}`,
+      });
+    },
+    reportCharacter() {
+      this.menuOpen = false;
+      if (!this.companionId) return;
+      this.emitCmd({ type: "reportCharacter" });
+    },
+    confirmClear() {
+      this.menuOpen = false;
+      this._clearGuardUntil = Date.now() + 400;
+      scheduleTimeout(() => {
+        if (this._pageAlive) this.showClearConfirm = true;
+      }, 80);
+    },
+    closeClear() {
+      if (Date.now() < this._clearGuardUntil) return;
+      this.showClearConfirm = false;
+    },
+    doClear() {
+      this.showClearConfirm = false;
+      this.emitCmd({ type: "clear" });
+    },
+    onMsgLong(row) {
+      try {
+        uni.vibrateShort();
+      } catch (e) {
+        /* ignore */
+      }
+      const items = [this.labels.copy || "Copy", this.labels.report || "Report"];
+      uni.showActionSheet({
+        itemList: items,
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            uni.setClipboardData({ data: row.text || "" });
+          } else if (res.tapIndex === 1) {
+            this.emitCmd({
+              type: "reportMessage",
+              messageId: row.id,
+              text: row.text,
+              sender: row.sender,
+            });
+          }
+        },
+      });
+    },
+    onTranslate(row) {
+      this.emitCmd({ type: "translate", messageId: row.id });
+    },
+    onTranslateAction(row) {
+      this.emitCmd({ type: "translateAction", messageId: row.id });
+    },
+    onSysTap(row) {
+      if (row && row.sender === "thinking") this.dismiss(row.id);
+    },
+    /** 超额未付费感叹号：再打开付费墙，不重发 */
+    onUnpaidTap() {
+      this.emitCmd({ type: "reopenPaywall" });
+    },
+    dismiss(id) {
+      this.emitCmd({ type: "dismiss", messageId: id });
+    },
+    preview(url) {
+      if (!url) return;
+      uni.previewImage({ urls: [url], current: url });
+    },
+  },
+};
+</script>
+
+<style>
+.page {
+  flex: 1;
+  flex-direction: column;
+  position: relative;
+}
+.header {
+  flex-direction: column;
+}
+.header-inner {
+  height: 116rpx;
+  flex-direction: row;
+  align-items: center;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.back-btn {
+  width: 88rpx;
+  height: 88rpx;
+  align-items: center;
+  justify-content: center;
+}
+.back-ico {
+  width: 64rpx;
+  height: 64rpx;
+}
+.header-identity {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  margin-left: 0;
+}
+.header-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  margin-right: 16rpx;
+  /* 防止 flex 行里被压扁；裁切成圆 */
+  overflow: hidden;
+}
+.header-identity-meta {
+  flex: 1;
+  justify-content: center;
+  align-items: flex-start;
+}
+.name-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+.chat-header-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  lines: 1;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.header-status-wrap {
+  flex-direction: row;
+  align-items: center;
+  margin-top: 2rpx;
+}
+.header-identity-status {
+  font-size: 22rpx;
+  lines: 1;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.online-dot {
+  width: 14rpx;
+  height: 14rpx;
+  margin-left: 16rpx;
+  border-radius: 7rpx;
+  background-color: #22c55e;
+}
+.menu-btn {
+  width: 72rpx;
+  height: 72rpx;
+  align-items: center;
+  justify-content: center;
+}
+.menu-btn-text {
+  font-size: 60rpx;
+  line-height: 60rpx;
+  margin-top: -26rpx;
+}
+.menu-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.01);
+}
+.header-menu {
+  position: absolute;
+  right: 24rpx;
+  width: 480rpx;
+  border-radius: 24rpx;
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+  border-width: 1px;
+  border-style: solid;
+}
+.menu-item {
+  font-size: 28rpx;
+  lines: 1;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.menu-danger {
+  color: #ef4444;
+}
+.clear-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  justify-content: flex-end;
+  align-items: center;
+  padding-left: 48rpx;
+  padding-right: 48rpx;
+}
+.clear-dialog {
+  width: 600rpx;
+  border-radius: 32rpx;
+  border-width: 1px;
+  border-style: solid;
+  padding-top: 50rpx;
+  padding-bottom: 50rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.clear-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+.clear-desc {
+  font-size: 28rpx;
+  line-height: 42rpx;
+  margin-bottom: 32rpx;
+}
+.clear-actions {
+  flex-direction: row;
+}
+.clear-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 40rpx;
+  align-items: center;
+  justify-content: center;
+}
+.clear-btn-cancel {
+  margin-right: 20rpx;
+  border-width: 1px;
+  border-style: solid;
+}
+.clear-btn-ok {
+  background-image: linear-gradient(to bottom right, #fff946, #eb6793);
+}
+.clear-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.clear-btn-ok-text {
+  color: #0a0a0a;
+}
+.denied {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+}
+.access-text {
+  font-size: 30rpx;
+  text-align: center;
+  margin-bottom: 48rpx;
+}
+.access-back {
+  font-size: 28rpx;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
+  padding-left: 48rpx;
+  padding-right: 48rpx;
+  border-radius: 999rpx;
+  border-width: 1px;
+  border-style: solid;
+}
+.chat-main {
+  flex: 1;
+  flex-direction: column;
+  position: relative;
+}
+.list-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.enter-wait {
+  padding-top: 24rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.skel-row {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+.skel-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  margin-right: 16rpx;
+}
+.skel-body {
+  flex: 1;
+  justify-content: center;
+}
+.skel-line {
+  height: 28rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+}
+.skel-line--sub {
+  height: 24rpx;
+  margin-bottom: 0;
+}
+.dismiss-catch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.01);
+}
+.chat-scroll {
+  flex: 1;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.chat-invert {
+  transform: scaleY(-1);
+}
+.invert-item {
+  transform: scaleY(-1);
+}
+.chat-stack {
+  flex-direction: column;
+}
+.chat-body {
+  flex-direction: column;
+}
+.empty-hint {
+  text-align: center;
+  font-size: 28rpx;
+  padding-top: 48rpx;
+  padding-bottom: 48rpx;
+}
+.mt-none {
+  margin-top: 0;
+}
+.mt-tight {
+  margin-top: 8rpx;
+}
+.mt-normal {
+  margin-top: 24rpx;
+}
+.mt-date {
+  margin-top: 16rpx;
+}
+.date-sep {
+  align-items: center;
+  padding-top: 12rpx;
+  padding-bottom: 12rpx;
+}
+.date-sep-label {
+  font-size: 22rpx;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 999rpx;
+  padding-top: 6rpx;
+  padding-bottom: 6rpx;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+}
+.center-row {
+  align-items: center;
+}
+.bubble-thinking,
+.bubble-system {
+  font-size: 24rpx;
+  text-align: center;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+  border-radius: 24rpx;
+  border-width: 1px;
+  border-style: solid;
+}
+.bubble-filler {
+  font-size: 24rpx;
+  text-align: center;
+  padding-top: 12rpx;
+  padding-bottom: 12rpx;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+  border-radius: 16rpx;
+  color: #DFAB52;
+  background-color: rgba(236, 72, 153, 0.08);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(236, 72, 153, 0.12);
+}
+.bubble-row-user {
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+.bubble-row-ai {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.bubble-col {
+  flex: 1;
+  align-items: flex-start;
+}
+.bubble-col-user {
+  align-items: flex-end;
+}
+.bubble-with-status {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+.send-status {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 12rpx;
+  align-items: center;
+  justify-content: center;
+}
+.send-spin {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 14rpx;
+  border-width: 3rpx;
+  border-style: solid;
+  border-color: rgba(235, 103, 147, 0.22);
+  border-top-color: rgba(235, 103, 147, 0.95);
+}
+.send-fail {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 14rpx;
+  background-color: #ef4444;
+  align-items: center;
+  justify-content: center;
+}
+.send-fail-mark {
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 20rpx;
+  text-align: center;
+}
+.avatar-sm {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  margin-right: 16rpx;
+  overflow: hidden;
+}
+.avatar-spacer {
+  width: 64rpx;
+  height: 64rpx;
+  margin-right: 16rpx;
+}
+.foot-time {
+  font-size: 22rpx;
+  margin-bottom: 12rpx;
+  opacity: 0.6;
+}
+.foot-time-user {
+  text-align: right;
+}
+.chat-bubble-user {
+  padding-top: 24rpx;
+  padding-bottom: 24rpx;
+  padding-left: 28rpx;
+  padding-right: 28rpx;
+  border-top-left-radius: 32rpx;
+  border-top-right-radius: 16rpx;
+  border-bottom-left-radius: 32rpx;
+  border-bottom-right-radius: 32rpx;
+  /* 对齐 sayhi.svg 可视效果：右下为珊瑚粉，非满粉 #E747A4 */
+  background-image: linear-gradient(to bottom right, #fff946, #eb6793);
+}
+.chat-bubble-user-text {
+  font-size: 32rpx;
+  line-height: 45rpx;
+  font-weight: 500;
+  color: #0a0a0a;
+}
+.chat-bubble-ai {
+  padding: 32rpx;
+  font-size: 32rpx;
+  line-height: 45rpx;
+  border-top-left-radius: 8rpx;
+  border-top-right-radius: 32rpx;
+  border-bottom-left-radius: 32rpx;
+  border-bottom-right-radius: 32rpx;
+}
+.bubble-text-translated {
+  margin-top: 20rpx;
+  font-size: 32rpx;
+  line-height: 45rpx;
+  opacity: 0.78;
+}
+.translate-chip {
+  margin-top: 12rpx;
+  flex-direction: row;
+  align-items: center;
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
+  border-radius: 999rpx;
+  border-width: 1px;
+  border-style: solid;
+}
+.translate-chip-ico {
+  width: 24rpx;
+  height: 24rpx;
+  margin-right: 8rpx;
+}
+.translate-chip-label,
+.translate-chip-action,
+.translate-chip-sep {
+  font-size: 22rpx;
+}
+.translate-chip-sep {
+  padding-left: 4rpx;
+  padding-right: 4rpx;
+  opacity: 0.45;
+}
+.moment-card {
+  width: 520rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background-image: linear-gradient(to bottom right, #fff946, #eb6793);
+}
+.moment-caption {
+  font-size: 28rpx;
+  line-height: 42rpx;
+  lines: 6;
+  text-overflow: ellipsis;
+  color: #000000;
+  margin-bottom: 12rpx;
+}
+.moment-image {
+  width: 480rpx;
+  height: 280rpx;
+  border-radius: 16rpx;
+}
+.chat-msg-image {
+  width: 480rpx;
+  border-radius: 16rpx;
+}
+.moment-like-status {
+  flex-direction: row;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 12rpx;
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+.like-heart {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 8rpx;
+}
+.like-text {
+  font-size: 24rpx;
+  color: rgba(0, 0, 0, 0.7);
+}
+.typing-row {
+  flex-direction: row;
+  align-items: flex-start;
+  margin-top: 8rpx;
+}
+.typing-bubble {
+  flex-direction: row;
+  align-items: center;
+  padding-top: 28rpx;
+  padding-bottom: 28rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+  /* 与 AI 消息气泡一致：靠近头像的左上角收尖 */
+  border-top-left-radius: 8rpx;
+  border-top-right-radius: 32rpx;
+  border-bottom-left-radius: 32rpx;
+  border-bottom-right-radius: 32rpx;
+}
+.typing-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 6rpx;
+  margin-right: 10rpx;
+}
+.typing-dot-last {
+  margin-right: 0;
+}
+.scroll-anchor {
+  /* 最新端留白：避免满页时最后一条贴死/裁进输入栏 */
+  height: 96rpx;
+}
+.dock {
+  flex-direction: column;
+}
+.composer-panel {
+  margin-left: 32rpx;
+  margin-right: 32rpx;
+  margin-bottom: 8rpx;
+  border-radius: 24rpx;
+  border-width: 1px;
+  border-style: solid;
+  padding: 16rpx;
+}
+.composer-bar {
+  flex-direction: row;
+  align-items: flex-end;
+  padding-top: 24rpx;
+  padding-bottom: 24rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.composer-field-wrap {
+  flex: 1;
+  height: 82rpx;
+  padding-top: 20rpx;
+  padding-bottom: 20rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+  border-radius: 32rpx;
+  border-width: 1px;
+  border-style: solid;
+  justify-content: center;
+}
+.composer-textarea {
+  height: 42rpx;
+  font-size: 28rpx;
+  line-height: 42rpx;
+}
+.composer-deleted {
+  font-size: 28rpx;
+  line-height: 42rpx;
+  lines: 1;
+  text-overflow: ellipsis;
+}
+.composer-action {
+  width: 104rpx;
+  height: 82rpx;
+  margin-left: 24rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+}
+.composer-action-ico {
+  width: 104rpx;
+  height: 82rpx;
+}
+.emoji-scroller {
+  flex: 1;
+}
+.emoji-row {
+  flex-direction: row;
+  justify-content: space-between;
+  padding-top: 8rpx;
+}
+.emoji {
+  width: 72rpx;
+  font-size: 40rpx;
+  text-align: center;
+  line-height: 72rpx;
+}
+.our-moments-tip-mask {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+.our-moments-tip {
+  max-width: 320px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  padding-left: 14px;
+  padding-right: 14px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.our-moments-tip-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-align: center;
+  lines: 1;
+  text-overflow: ellipsis;
+}
+.our-moments-tip-text {
+  font-size: 12px;
+  line-height: 17px;
+  text-align: center;
+  /* 第 2 行；过长最多再折 1 行 */
+  lines: 2;
+  text-overflow: ellipsis;
+}
+.our-moments-chat-bar {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 750rpx;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+}
+.our-moments-chat-bar-line {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+.our-moments-chat-bar-n {
+  font-size: 24rpx;
+  line-height: 32rpx;
+  font-weight: 700;
+  text-align: center;
+}
+.our-moments-chat-bar-text {
+  font-size: 24rpx;
+  line-height: 32rpx;
+  text-align: center;
+  lines: 2;
+  text-overflow: ellipsis;
+}
+</style>

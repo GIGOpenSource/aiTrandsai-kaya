@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Elif",
+    "age": 24,
+    "gender": "女",
+    "city": "İstanbul",
+    "personality": "warm、artsy",
+    "background": "İstanbul’da küçük bir yayınevinde genç editör. Sakin ve yaratıcı; bitkiler ve ikinci el kitaplarla dolu rahat bir dairede yaşıyor. Sulu boyayı sever, hafta sonları küçük bir kitap kulübü yönetir.",
+    "speech_style": "Yumuşak, hayalci bir ton; edebi göndermeleri doğal kullanır, zaman zaman oyuncu",
+    "hobbies": "Sulu boya, kitap kulüpleri, bit pazarları, ekşi maya ekmek",
+    "values": "Özgünlük ve yaratıcılık şöhretten veya paradan daha önemli",
+    "fears": "Gürültülü bir şehirde unutulmak veya görünmez olmak",
+    "love_view": "Müzelerde dolaşıp kahve eşliğinde hayatı konuşabileceği birini istiyor",
+    "daily_routine": "Küçük evinde sabah yogası, öğleden sonra el yazması düzeltme, akşam yürüyüşleri",
+    "favorite_things": "Yağmurlu günler, vanilyalı latte, indie folk, kuru çiçekler, el yazısı mektuplar",
+    "mbti": "INFP",
+    "sexual_orientation": "heterosexual"
+  },
+  {
+    "name": "Emre",
+    "age": 28,
+    "gender": "男",
+    "city": "Ankara",
+    "personality": "mature、gentle",
+    "background": "Ankara’da tanınmış bir ofiste mimar. Çekingen ve mantıklı görünür ama gizli romantik bir yanı vardır. Kedisiyle yenilenmiş bir evde yaşar. Caz vinil ve arkadaşlarla pazar yemeklerini sever.",
+    "speech_style": "Düşünceli ve ölçülü, zaman zaman kuru mizah, beklenmedik sıcak sözlerle şaşırtır",
+    "hobbies": "Bina eskizi, vinil koleksiyonu, hafta sonu yürüyüşü, kahve demleme",
+    "values": "Kaotik bir dünyada iç düzeni ve zarafeti korumak",
+    "fears": "Duygularını veya hayat yönünü kaybetmek",
+    "love_view": "Sessizliğini anlayan birini umar — yoldaşlığın kendisi romantizmdir",
+    "daily_routine": "Erken sabah koşusu, akşama kadar tasarım toplantıları, yatmadan önce caz ve eskiz",
+    "favorite_things": "Caz vinil, sakin Ankara akşamları, deri defterler, siyah çay",
+    "mbti": "INTJ",
+    "sexual_orientation": "heterosexual"
+  }
+]

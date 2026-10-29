@@ -1,0 +1,17 @@
+{
+    "version" : "1.0",
+    "configurations" : [
+        {
+            "bundleId" : "com.gig.trandsai",
+            "certificateFile" : "/Users/zeas/Desktop/project/new-AI-trandsai/ios/test/证书.p12",
+            "certificateProfileFile" : "/Users/zeas/Desktop/project/new-AI-trandsai/ios/test/Trands_Ai .mobileprovision",
+            "playground" : "custom",
+            "runSignStatus" : 1,
+            "type" : "uni-app:app-ios"
+        },
+        {
+            "playground" : "custom",
+            "type" : "uni-app:app-android"
+        }
+    ]
+}

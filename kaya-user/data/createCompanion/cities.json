@@ -1,0 +1,122 @@
+{
+  "zh": [
+    "北京",
+    "上海",
+    "成都",
+    "广州",
+    "深圳",
+    "杭州",
+    "武汉",
+    "西安"
+  ],
+  "en": [
+    "New York",
+    "Los Angeles",
+    "London",
+    "San Francisco",
+    "Seattle",
+    "Chicago",
+    "Boston",
+    "Austin"
+  ],
+  "ja": [
+    "東京",
+    "大阪",
+    "京都",
+    "札幌",
+    "福岡",
+    "名古屋",
+    "横浜",
+    "神戸"
+  ],
+  "ko": [
+    "서울",
+    "부산",
+    "인천",
+    "대구",
+    "광주",
+    "대전",
+    "울산",
+    "제주"
+  ],
+  "pt": [
+    "São Paulo",
+    "Rio de Janeiro",
+    "Salvador",
+    "Brasília",
+    "Belo Horizonte",
+    "Fortaleza",
+    "Curitiba",
+    "Porto Alegre"
+  ],
+  "es": [
+    "Madrid",
+    "Barcelona",
+    "México City",
+    "Buenos Aires",
+    "Lima",
+    "Bogotá",
+    "Santiago",
+    "Valencia"
+  ],
+  "id": [
+    "Jakarta",
+    "Surabaya",
+    "Bandung",
+    "Medan",
+    "Makassar",
+    "Yogyakarta",
+    "Semarang",
+    "Bali"
+  ],
+  "ar": [
+    "الرياض",
+    "جدة",
+    "دبي",
+    "أبوظبي",
+    "القاهرة",
+    "الدار البيضاء",
+    "عمّان",
+    "الدوحة"
+  ],
+  "fa": [
+    "تهران",
+    "اصفهان",
+    "مشهد",
+    "شیراز",
+    "تبریز",
+    "کرج",
+    "اهواز",
+    "قم"
+  ],
+  "ru": [
+    "Москва",
+    "Санкт-Петербург",
+    "Новосибирск",
+    "Екатеринбург",
+    "Казань",
+    "Нижний Новгород",
+    "Краснодар",
+    "Сочи"
+  ],
+  "bg": [
+    "София",
+    "Пловдив",
+    "Варна",
+    "Бургас",
+    "Русе",
+    "Стара Загора",
+    "Плевен",
+    "Благоевград"
+  ],
+  "tr": [
+    "İstanbul",
+    "Ankara",
+    "İzmir",
+    "Bursa",
+    "Antalya",
+    "Adana",
+    "Gaziantep",
+    "Eskişehir"
+  ]
+}

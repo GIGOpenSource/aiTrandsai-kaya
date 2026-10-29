@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Generated from google-services.json for Firebase init without google-services Gradle plugin -->
+	<string name="gcm_defaultSenderId" translatable="false">472086715296</string>
+	<string name="google_api_key" translatable="false">AIzaSyC_MjmmK2_M4dyFSxGHTD2JNLwghSyTg2I</string>
+	<string name="google_app_id" translatable="false">1:472086715296:android:c7e779cfe7341a2e4e22c5</string>
+	<string name="google_crash_reporting_api_key" translatable="false">AIzaSyC_MjmmK2_M4dyFSxGHTD2JNLwghSyTg2I</string>
+	<string name="google_storage_bucket" translatable="false">zeas-trandsai.firebasestorage.app</string>
+	<string name="project_id" translatable="false">zeas-trandsai</string>
+</resources>

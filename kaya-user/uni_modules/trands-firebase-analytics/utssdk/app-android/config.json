@@ -1,0 +1,13 @@
+{
+	"minSdkVersion": "24",
+	"dependencies": [
+		{
+			"id": "com.google.firebase:firebase-bom",
+			"source": "implementation platform('com.google.firebase:firebase-bom:33.7.0')"
+		},
+		{
+			"id": "com.google.firebase:firebase-analytics",
+			"source": "implementation('com.google.firebase:firebase-analytics') { exclude group: 'com.google.android.gms', module: 'play-services-places-placereport' }"
+		}
+	]
+}

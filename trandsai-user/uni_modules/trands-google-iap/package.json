@@ -1,0 +1,125 @@
+{
+	"id": "trands-google-iap",
+	"displayName": "Trands Google Play IAP",
+	"version": "1.0.0",
+	"description": "Self-owned Google Play Billing 9 IAP for uni-app (Android). Coexists with tt-google-iap via VITE_USE_TRANDS_IAP.",
+	"keywords": [
+		"Google Play",
+		"Billing",
+		"IAP",
+		"in-app purchase"
+	],
+	"repository": "",
+	"engines": {
+		"HBuilderX": "^3.6.8",
+		"uni-app": "^3.0.0",
+		"uni-app-x": "^3.0.0"
+	},
+	"dcloudext": {
+		"type": "uts",
+		"sale": {
+			"regular": {
+				"price": "0.00"
+			},
+			"sourcecode": {
+				"price": "0.00"
+			}
+		},
+		"contact": {
+			"qq": ""
+		},
+		"declaration": {
+			"ads": "无",
+			"data": "购买凭证与商品信息经 Google Play Billing 处理",
+			"permissions": "com.android.vending.BILLING"
+		},
+		"npmurl": "",
+		"darkmode": "x",
+		"i18n": "x",
+		"widescreen": "x"
+	},
+	"uni_modules": {
+		"dependencies": [],
+		"encrypt": [],
+		"platforms": {
+			"cloud": {
+				"tcb": "x",
+				"aliyun": "x",
+				"alipay": "x"
+			},
+			"client": {
+				"uni-app": {
+					"vue": {
+						"vue2": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"vue3": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						}
+					},
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"vue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"nvue": {
+							"extVersion": "1.0.0",
+							"minVersion": ""
+						},
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "24"
+						},
+						"ios": {
+							"extVersion": "1.0.0",
+							"minVersion": "12"
+						},
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x",
+						"alipay": "x",
+						"toutiao": "x",
+						"baidu": "x",
+						"kuaishou": "x",
+						"jd": "x",
+						"harmony": "x",
+						"qq": "x",
+						"lark": "x",
+						"xhs": "x"
+					},
+					"quickapp": {
+						"huawei": "x",
+						"union": "x"
+					}
+				},
+				"uni-app-x": {
+					"web": {
+						"safari": "x",
+						"chrome": "x"
+					},
+					"app": {
+						"android": {
+							"extVersion": "1.0.0",
+							"minVersion": "24"
+						},
+						"ios": {
+							"extVersion": "1.0.0",
+							"minVersion": "12"
+						},
+						"harmony": "x"
+					},
+					"mp": {
+						"weixin": "x"
+					}
+				}
+			}
+		}
+	}
+}

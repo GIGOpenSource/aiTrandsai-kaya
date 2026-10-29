@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'uts.sdk.modules.trandsGoogleIap'
+    compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 24
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            consumerProguardFiles 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+        }
+    }
+}
+
+dependencies {
+    compileOnly fileTree(dir: '../simpleDemo/libs', include: ['*.aar'])
+    implementation 'com.android.billingclient:billing:9.1.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.0"
+}

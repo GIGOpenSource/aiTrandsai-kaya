@@ -1,0 +1,21 @@
+/**
+ * Trands Google Play IAP — JSON-string + top-level callback API
+ * (aligned with offline IndexKt *ByJs signatures).
+ *
+ * Native returns plain String JSON; JS facade parses before calling app options.success/fail.
+ */
+
+type IapSuccess = (result : string) => void
+type IapFail = (error : string) => void
+
+export declare function connect(optionsJson : string, success : IapSuccess, fail : IapFail) : void
+
+export declare function isReady() : boolean
+
+export declare function getBillingConfig(success : IapSuccess, fail : IapFail) : void
+
+export declare function queryProductDetails(productsJson : string, success : IapSuccess, fail : IapFail) : void
+
+export declare function launchBillingFlow(payloadJson : string, success : IapSuccess, fail : IapFail) : void
+
+export declare function onPurchasesUpdated(callback : (result : string) => void) : void

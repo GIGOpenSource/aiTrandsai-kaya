@@ -1,0 +1,20 @@
+{
+    "version" : "1.0",
+    "configurations" : [
+        {
+            "bundleId" : "com.gig.trandsai",
+            "certificateFile" : "/Users/ww/project/aiGrilFriend_new/ios/test/证书.p12",
+            "certificateProfileFile" : "/Users/ww/project/aiGrilFriend_new/ios/test/Trands_Ai.mobileprovision",
+            "customPlaygroundType" : "device",
+            "playground" : "custom",
+            "runSignStatus" : 1,
+            "type" : "uni-app:app-ios"
+        },
+        {
+            "customPlaygroundType" : "local",
+            "packageName" : "",
+            "playground" : "custom",
+            "type" : "uni-app:app-android"
+        }
+    ]
+}

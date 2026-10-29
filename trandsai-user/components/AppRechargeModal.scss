@@ -1,0 +1,880 @@
+.recharge-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* 解锁提示：fixed 相对视口，约上方 1/4；必须高于 mask(2000)，App 上 absolute 易被 sheet 盖住 */
+.our-moments-on-paywall {
+  position: fixed;
+  left: 80rpx;
+  right: 80rpx;
+  top: 25vh;
+  z-index: 10050;
+  max-width: 520rpx;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 22rpx 36rpx;
+  border-radius: 16rpx;
+  background: #2c2c2c;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.our-moments-on-paywall-text {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.4;
+  color: #ffffff;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* 浅色：对齐 AppGenderSelectModal（白底 + 深色字 + 轻阴影） */
+.our-moments-on-paywall.theme-light,
+.theme-light .our-moments-on-paywall,
+page[data-theme="light"] .our-moments-on-paywall,
+html[data-theme="light"] .our-moments-on-paywall {
+  background: #ffffff;
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.12);
+}
+
+.our-moments-on-paywall.theme-light .our-moments-on-paywall-text,
+.theme-light .our-moments-on-paywall-text,
+page[data-theme="light"] .our-moments-on-paywall-text,
+html[data-theme="light"] .our-moments-on-paywall-text {
+  color: #0a0a0a;
+}
+
+.recharge-modal-sheet {
+  width: 100%;
+  height: 86vh;
+  max-height: 86vh;
+  background: var(--modal-bg, #0d0d0d);
+  border-radius: 32rpx 32rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  position: relative;
+  z-index: 1;
+  color: var(--fg, #fafafa);
+}
+
+.recharge-modal-close {
+  position: absolute;
+  right: 24rpx;
+  top: 24rpx;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: var(--bg-active, rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.recharge-modal-close-text {
+  color: var(--fg-soft, rgba(255, 255, 255, 0.8));
+  font-size: 28rpx;
+}
+
+.recharge-tabs {
+  display: flex;
+  padding: 28rpx 32rpx 0;
+}
+
+.recharge-tab {
+  padding-bottom: 12rpx;
+  margin-right: 40rpx;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.recharge-tab-text {
+  font-size: 32rpx;
+  color: var(--fg-faint, rgba(255, 255, 255, 0.45));
+  font-weight: 500;
+}
+
+.recharge-tab.active .recharge-tab-text {
+  color: var(--fg, #fff);
+}
+
+.recharge-tab-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  height: 6rpx;
+  width: 48rpx;
+  border-radius: 6rpx;
+  background: var(--gradient-brand);
+}
+
+.recharge-modal-body-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.recharge-modal-body {
+  height: 100%;
+  padding: 24rpx 32rpx 32rpx;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  /* 勿设 overflow-x:hidden：会把 overflow-y 变成 auto，裁掉钻石上溢 */
+}
+
+.recharge-modal-footer {
+  padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.recharge-error-bar,
+.vip-tip-bar {
+  display: flex;
+  align-items: center;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1rpx solid rgba(239, 68, 68, 0.28);
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.recharge-error-icon,
+.vip-tip-icon {
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+  margin-right: 12rpx;
+}
+
+.recharge-error-text,
+.vip-tip-text {
+  font-size: 24rpx;
+  color: #ff8787;
+  line-height: 1.4;
+}
+
+/* ── 特权卡 ── */
+.privilege-card {
+  position: relative;
+  border-radius: 24rpx;
+  overflow: hidden;
+  padding: 32rpx;
+  min-height: 240rpx;
+  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #2d1423, #231e14);
+}
+
+.privilege-card.no-vip {
+  /* 空 view 的 CSS background-image 在 App/H5 常不绘制，用渐变兜底 + 图片铺底 */
+  background: linear-gradient(135deg, #c9a07a 0%, #8b5a3c 42%, #3d2418 100%);
+  overflow: visible;
+  margin-top: 36rpx; /* 给钻石上溢留空，避免被 scroll 裁切 */
+}
+
+.privilege-bg-wrap,
+.privilege-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.privilege-bg-wrap {
+  /* 右上缺口形：SVG 矢量，禁止 PNG */
+  background: url("/static/recharge/vip-privilege-bg.svg") center / 100% 100% no-repeat;
+}
+
+.theme-light .privilege-bg-wrap,
+page[data-theme="light"] .privilege-bg-wrap,
+html[data-theme="light"] .privilege-bg-wrap,
+.theme-light .privilege-bg-img,
+page[data-theme="light"] .privilege-bg-img,
+html[data-theme="light"] .privilege-bg-img {
+  filter: brightness(1.45);
+}
+
+.privilege-bg {
+  display: none;
+}
+
+.privilege-diamond {
+  position: absolute;
+  right: 0;
+  top: -36rpx;
+  width: 184rpx;
+  height: 184rpx;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* H5 uni-image 内部勿裁切钻石尖角 */
+.privilege-diamond :deep(img),
+.current-vip-diamond :deep(img) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+.privilege-diamond :deep(div),
+.current-vip-diamond :deep(div) {
+  overflow: visible !important;
+}
+
+.privilege-content {
+  position: relative;
+  z-index: 1;
+  max-width: 72%;
+}
+
+.privilege-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fccea1;
+  margin-bottom: 20rpx;
+}
+
+.privilege-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.privilege-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 14rpx;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.privilege-check {
+  margin-right: 12rpx;
+}
+
+.privilege-check {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f6ad55, #ed8936);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18rpx;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+}
+
+.privilege-text {
+  font-size: 24rpx;
+  color: rgba(252, 206, 161, 0.92);
+  line-height: 1.5;
+}
+
+/* ── 当前会员卡（稿：钻石顶左溢出；标题顶右白字；底栏左日期+续费 / 右账单）── */
+.current-vip-card {
+  position: relative;
+  border-radius: 24rpx;
+  padding: 28rpx 28rpx 28rpx 32rpx;
+  min-height: 240rpx;
+  /* 给钻石上溢留空，避免被 scroll-view 裁切尖角 */
+  margin-top: 48rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.current-vip-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 24rpx;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(95deg, #a87a55 0%, #6e4a35 48%, #3a2418 100%);
+  border: 1rpx solid rgba(252, 206, 161, 0.35);
+  box-sizing: border-box;
+}
+
+.theme-light .current-vip-bg,
+page[data-theme="light"] .current-vip-bg,
+html[data-theme="light"] .current-vip-bg {
+  background: linear-gradient(95deg, #c9a07a 0%, #b07d5c 48%, #8b5a3c 100%);
+  border-color: rgba(252, 206, 161, 0.55);
+}
+
+.current-vip-bg::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 240, 220, 0.28) 0%,
+    rgba(252, 206, 161, 0.08) 30%,
+    transparent 55%
+  );
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.current-vip-diamond {
+  position: absolute;
+  left: 4rpx;
+  top: -36rpx;
+  width: 168rpx;
+  height: 168rpx;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.current-vip-info {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 144rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.current-vip-plan {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.2;
+  margin-left: 148rpx;
+  margin-top: 4rpx;
+}
+
+.current-vip-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: auto;
+}
+
+.current-vip-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+
+.current-vip-date {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 10rpx;
+  line-height: 1.2;
+}
+
+.current-vip-action {
+  display: flex;
+  align-items: center;
+}
+
+.current-vip-action-text {
+  font-size: 24rpx;
+  color: #fccea1;
+  line-height: 1.2;
+}
+
+.current-vip-bills {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #fccea1;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 12rpx 22rpx;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.bills-icon {
+  width: 22rpx;
+  height: 22rpx;
+  margin-left: 4rpx;
+}
+
+/* ── 套餐网格（不用 gap：App/小程序 WebView 常不支持，会贴死成「粘连」）── */
+.plan-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding-top: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.plan-grid--after-card {
+  padding-top: 24rpx;
+}
+
+.points-nonmember-spacer {
+  height: 8rpx;
+}
+
+.plan-card {
+  position: relative;
+  width: calc((100% - 20rpx) / 2);
+  margin-right: 20rpx;
+  margin-bottom: 28rpx;
+  background: var(--surface-inset, rgba(255, 255, 255, 0.08));
+  border: 2rpx solid var(--border-soft, rgba(255, 255, 255, 0.12));
+  border-radius: 20rpx;
+  padding: 24rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 0;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+
+  &:nth-child(2n) {
+    margin-right: 0;
+  }
+
+  &.active {
+    z-index: 2;
+    border-color: rgba(252, 206, 161, 0.75);
+    background: rgba(252, 206, 161, 0.08);
+  }
+}
+
+.plan-watermark {
+  position: absolute;
+  right: 12rpx;
+  top: 12rpx;
+  width: 110rpx;
+  height: 56rpx;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.plan-save-badge {
+  position: absolute;
+  left: 0;
+  top: -18rpx;
+  min-width: 96rpx;
+  height: 36rpx;
+  padding: 0 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  /* 超过最小宽度后随文案变宽，SVG 按 100% 拉伸铺满 */
+  background: url("/static/recharge/vip-discount.svg") no-repeat;
+  background-size: 100% 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.plan-save-badge-text {
+  color: #fff;
+  font-size: 20rpx;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.plan-name {
+  font-size: 26rpx;
+  color: var(--fg, #fff);
+  margin-top: 20rpx;
+  margin-bottom: 12rpx;
+}
+
+.plan-price-row {
+  display: flex;
+  align-items: flex-end;
+  margin-top: auto;
+  margin-bottom: 4rpx;
+}
+
+.plan-currency {
+  font-size: 24rpx;
+  color: #fccea1;
+  line-height: 1;
+  margin-bottom: 3rpx;
+}
+
+.plan-price {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #fccea1;
+  line-height: 1;
+}
+
+.plan-daily {
+  font-size: 20rpx;
+  color: var(--fg-faint, rgba(255, 255, 255, 0.45));
+  margin-bottom: 20rpx;
+  min-height: 28rpx;
+}
+
+.plan-daily-placeholder {
+  color: transparent;
+}
+
+.plan-footer {
+  margin-top: auto;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed var(--border-soft, rgba(255, 255, 255, 0.12));
+  display: flex;
+  justify-content: space-between;
+}
+
+.plan-points,
+.plan-agents {
+  font-size: 20rpx;
+  color: var(--fg-dim, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+}
+
+/* ── 积分余额卡（稿：币标顶左溢出；数字+Points 沉底左，账单沉底右）── */
+.points-balance-card {
+  position: relative;
+  border-radius: 24rpx;
+  padding: 28rpx 28rpx 28rpx 32rpx;
+  /* 加高卡身，避免底栏数字与顶左币标纵向重叠 */
+  min-height: 240rpx;
+  margin-top: 48rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.points-balance-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 24rpx;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2e3036 0%, #24262c 50%, #1a1c20 100%);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  box-sizing: border-box;
+}
+
+.theme-light .points-balance-bg,
+page[data-theme="light"] .points-balance-bg,
+html[data-theme="light"] .points-balance-bg {
+  background: linear-gradient(135deg, #6e7488 0%, #5c6174 100%);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.points-balance-bg::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 28%,
+    transparent 52%
+  );
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.points-balance-icon {
+  position: absolute;
+  left: 8rpx;
+  top: -40rpx;
+  width: 112rpx;
+  height: 112rpx;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.points-balance-icon :deep(img),
+.points-balance-icon :deep(div) {
+  width: 100% !important;
+  height: 100% !important;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  object-fit: contain !important;
+  overflow: visible !important;
+}
+
+.points-balance-info {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 172rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  /* 底栏整体避开币标落点，防大数字横向撞上 */
+  padding-top: 88rpx;
+}
+
+.points-balance-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.points-balance-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+
+.points-balance-num {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #fccea1;
+  line-height: 1;
+  margin-bottom: 8rpx;
+}
+
+.points-balance-label {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.2;
+}
+
+.points-balance-bills {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #fccea1;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 12rpx 22rpx;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+/* ── 积分套餐卡片 ── */
+.points-plan {
+  padding: 40rpx 20rpx 24rpx;
+}
+
+.points-plan .plan-name {
+  margin-top: 0;
+}
+
+.points-plan .plan-daily {
+  margin-bottom: 0;
+}
+
+.points-plan .plan-daily-placeholder {
+  display: none;
+}
+
+.points-plan-check {
+  position: absolute;
+  right: 16rpx;
+  top: 16rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid var(--border-soft, rgba(255, 255, 255, 0.25));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.points-plan-check.active {
+  border-color: rgba(252, 206, 161, 0.8);
+  background: rgba(252, 206, 161, 0.12);
+}
+
+.points-plan-check-icon {
+  width: 28rpx;
+  height: 28rpx;
+  opacity: 0.45;
+}
+
+.points-plan-check.active .points-plan-check-icon {
+  opacity: 1;
+}
+
+/* ── 积分说明 ── */
+.usage-section {
+  margin-bottom: 24rpx;
+}
+
+.usage-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fccea1;
+  margin-bottom: 12rpx;
+}
+
+.usage-line {
+  display: block;
+  font-size: 22rpx;
+  color: var(--fg-dim, rgba(255, 255, 255, 0.55));
+  line-height: 1.6;
+}
+
+/* ── 操作按钮 ── */
+.recharge-action-btn {
+  width: 100%;
+  height: 92rpx;
+  line-height: 92rpx;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-brand-btn, linear-gradient(90deg, #fff946, #ff9a44, #fc6a9a));
+  color: var(--fg-on-brand, #000);
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+}
+
+.recharge-action-btn::after {
+  border: none;
+}
+
+.recharge-action-btn[disabled] {
+  opacity: 0.8;
+}
+
+.recharge-btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.recharge-spinner {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid rgba(0, 0, 0, 0.15);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: recharge-spin 0.8s linear infinite;
+}
+
+@keyframes recharge-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recharge-spinner--light {
+  width: 48rpx;
+  height: 48rpx;
+  border-color: rgba(255, 255, 255, 0.18);
+  border-top-color: #fccea1;
+}
+
+.recharge-debug {
+  margin: 8rpx 32rpx 0;
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 176, 32, 0.16);
+}
+
+.recharge-debug-text {
+  font-size: 22rpx;
+  line-height: 32rpx;
+  color: #ffb020;
+  word-break: break-all;
+}
+
+.plan-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280rpx;
+  gap: 20rpx;
+  padding: 48rpx 0 24rpx;
+}
+
+.plan-loading-text {
+  font-size: 26rpx;
+  color: var(--fg-faint, rgba(255, 255, 255, 0.45));
+}
+
+.recharge-btn-loading-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--fg-on-brand, #000);
+}
+
+.recharge-disclaimer {
+  display: block;
+  font-size: 20rpx;
+  color: var(--fg-faint, rgba(255, 255, 255, 0.35));
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* iOS 付费弹窗：隐私 / 使用条款（对齐登录页可点样式） */
+.recharge-legal-row {
+  margin-top: 12rpx;
+  text-align: center;
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.recharge-legal-muted {
+  color: var(--fg-faint, rgba(255, 255, 255, 0.35));
+}
+
+.recharge-legal-link {
+  color: #3291f6;
+  text-decoration: underline;
+  text-underline-offset: 2rpx;
+}
+
+/* 浅色：套餐价/说明用可读品牌字色 */
+.theme-light .plan-currency,
+.theme-light .plan-price,
+.theme-light .usage-title,
+page[data-theme="light"] .plan-currency,
+page[data-theme="light"] .plan-price,
+page[data-theme="light"] .usage-title {
+  color: var(--brand-text, #b59a00);
+}
+
+.theme-light .recharge-spinner--light,
+page[data-theme="light"] .recharge-spinner--light {
+  border-color: rgba(10, 10, 10, 0.12);
+  border-top-color: var(--brand-text, #b59a00);
+}

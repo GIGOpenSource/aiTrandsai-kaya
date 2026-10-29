@@ -1,0 +1,11 @@
+{
+	"deploymentTarget": "12.0",
+	"validArchitectures": ["arm64"],
+	"dependencies-pods": [
+		{
+			"name": "FirebaseAnalytics",
+			"version": "11.6.0"
+		}
+	],
+	"dependencies-pod-resources": "app"
+}

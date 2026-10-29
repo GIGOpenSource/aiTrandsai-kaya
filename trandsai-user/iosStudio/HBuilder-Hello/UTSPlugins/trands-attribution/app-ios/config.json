@@ -1,0 +1,8 @@
+{
+	"deploymentTarget": "14.0",
+	"validArchitectures": ["arm64"],
+	"frameworks": [
+		"AppTrackingTransparency.framework",
+		"AdSupport.framework"
+	]
+}

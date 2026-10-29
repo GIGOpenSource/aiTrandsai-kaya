@@ -1,0 +1,6 @@
+/**
+ * Android stub. Play storefront is read via tt-google-iap getBillingConfig.
+ */
+export function fetchStorefrontCountryAlpha2() : string {
+	return ''
+}

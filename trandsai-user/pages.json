@@ -1,0 +1,371 @@
+{
+	"pages": [
+		{
+			"path": "pages/splash/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "启动",
+				"disableScroll": true
+			}
+		},
+		{
+		  "path": "pages/login/index",
+		  "style": {
+		    "navigationStyle": "custom",
+		    "disableScroll": true
+		  }
+		},
+		{
+			"path": "pages/login/account",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true
+			}
+		},
+		{
+			"path": "pages/register/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "注册",
+				"disableScroll": true
+			}
+		},
+		{
+			"path": "pages/register/step",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false,
+					"softinputNavBar": "none",
+					"popGesture": "none"
+				},
+				"backgroundColorTop": "#0a0a0a",
+				"backgroundColorBottom": "#0a0a0a"
+			}
+		},
+		{
+			"path": "pages/home/index",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false,
+					"statusBarBackground": "#00000000"
+				},
+				"backgroundColorTop": "#00000000",
+				"backgroundColorBottom": "#00000000"
+			}
+		},
+		{
+			"path": "pages/messages/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "消息",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false
+				},
+				"backgroundColorTop": "#0a0a0a",
+				"backgroundColorBottom": "#0a0a0a"
+			}
+		},
+		{
+			"path": "pages/discover/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "发现",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false
+				},
+				"backgroundColorTop": "#0a0a0a",
+				"backgroundColorBottom": "#0a0a0a"
+			}
+		},
+		{
+			"path": "pages/profile/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "我的",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false
+				},
+				"backgroundColorTop": "#0a0a0a",
+				"backgroundColorBottom": "#0a0a0a"
+			}
+		},
+		{
+			"path": "pages/chat/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "聊天",
+				"disableScroll": true,
+				"softinputMode": "adjustResize",
+				"app-plus": {
+					"bounce": "none",
+					"titleNView": false,
+					"softinputNavBar": "none",
+					"background": "#0a0a0a",
+					"softinputMode": "nothing"
+				},
+				"backgroundColor": "#0a0a0a",
+				"backgroundColorTop": "#0a0a0a",
+				"backgroundColorBottom": "#0a0a0a"
+			}
+		}
+	],
+	"subPackages": [{
+		"root": "pages-sub",
+		"pages": [{
+				"path": "companion/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "资料",
+					"disableScroll": true,
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false
+					}
+				}
+			},
+			{
+				"path": "create/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "创建",
+					"disableScroll": true,
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false
+					}
+				}
+			},
+			{
+				"path": "create-post/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "发帖",
+					"disableScroll": true,
+					"softinputMode": "adjustResize"
+				}
+			},
+			{
+				"path": "feedback/index",
+				"style": {
+					"navigationBarTitleText": "反馈",
+					"navigationBarBackgroundColor": "#f5f5f5",
+					"navigationBarTextStyle": "black",
+					"disableScroll": true,
+					"softinputMode": "adjustNothing",
+					"app-plus": {
+						"bounce": "none",
+						"softinputNavBar": "none",
+						"softinputMode": "nothing",
+						"titleNView": {
+							"autoBackButton": true,
+							"backgroundColor": "#f5f5f5",
+							"titleColor": "#111111",
+							"buttons": [
+								{
+									"type": "none",
+									"text": "···",
+									"fontSize": "20px",
+									"width": "44px",
+									"color": "#111111"
+								}
+							]
+						}
+					}
+				}
+			},
+			{
+				"path": "my-companions/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "我的伴侣",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "bills/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "账单",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "recharge/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "充值",
+					"disableScroll": true,
+					"backgroundColor": "#00000000",
+					"backgroundColorTop": "#00000000",
+					"backgroundColorBottom": "#00000000",
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false,
+						"animationType": "fade-in",
+						"animationDuration": 200,
+						"background": "transparent",
+						"popGesture": "close"
+					}
+				}
+			},
+			{
+				"path": "limited-offer/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "限时优惠",
+					"disableScroll": true,
+					"backgroundColor": "#00000000",
+					"backgroundColorTop": "#00000000",
+					"backgroundColorBottom": "#00000000",
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false,
+						"animationType": "fade-in",
+						"animationDuration": 200,
+						"background": "transparent",
+						"popGesture": "close"
+					}
+				}
+			},
+			{
+				"path": "intimacy/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "亲密度",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "my-posts/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "我的帖子",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "notifications/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "通知",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "settings/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "更多设置",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "notification-settings/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "通知设置",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "moment/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "朋友圈详情",
+					"disableScroll": true,
+					"softinputMode": "adjustNothing",
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false,
+						"softinputNavBar": "none",
+						"softinputMode": "nothing"
+					}
+				}
+			},
+			{
+				"path": "post/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "帖子详情",
+					"disableScroll": true,
+					"softinputMode": "adjustNothing",
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false,
+						"softinputNavBar": "none",
+						"softinputMode": "nothing"
+					}
+				}
+			},
+			{
+				"path": "not-found/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "404",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "onboarding/index",
+				"style": {
+					"navigationStyle": "custom",
+					"disableScroll": true
+				}
+			},
+			{
+				"path": "report-character/index",
+				"style": {
+					"navigationStyle": "custom",
+					"navigationBarTitleText": "举报",
+					"disableScroll": true,
+					"backgroundColor": "transparent",
+					"softinputMode": "adjustResize",
+					"app-plus": {
+						"bounce": "none",
+						"titleNView": false,
+						"animationType": "fade-in",
+						"background": "transparent",
+						"popGesture": "close"
+					}
+				}
+			}
+		]
+
+	}],
+	"preloadRule": {
+		"pages/home/index": {
+			"network": "all",
+			"packages": ["pages-sub"]
+		}
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarBackgroundColor": "#0f0f12",
+		"backgroundColor": "#0f0f12",
+		"backgroundColorTop": "#0f0f12",
+		"backgroundColorBottom": "#0f0f12",
+		"app-plus": {
+			"bounce": "none"
+		}
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^App(.*)": "@/components/App$1.vue",
+			"^u-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+			"^up-(.*)": "uview-plus/components/u-$1/u-$1.vue"
+		}
+	}
+}

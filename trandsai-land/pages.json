@@ -1,0 +1,36 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"enablePullDownRefresh": false,
+				"disableScroll": false
+			}
+		}
+	],
+	"subPackages": [],
+	"tabBar": {
+		"color": "#a5a3ab",
+		"selectedColor": "#ffffff",
+		"borderStyle": "black",
+		"backgroundColor": "#1d182e"
+	},
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#1d182e",
+		"backgroundColor": "#12111f",
+		"backgroundTextStyle": "dark"
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^u-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+			"^up-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+			"^l-(.*)": "lime-painter/components/l-$1/l-$1.vue",
+			"^IndexProup$": "@/components/IndexProup/IndexProup.vue",
+			"^InvitationPoster$": "@/components/InvitationPoster/InvitationPoster.vue"
+		}
+	},
+	"uniIdRouter": {}
+}

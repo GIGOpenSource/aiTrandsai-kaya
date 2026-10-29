@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "472086715296",
+    "project_id": "zeas-trandsai",
+    "storage_bucket": "zeas-trandsai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:472086715296:android:c7e779cfe7341a2e4e22c5",
+        "android_client_info": {
+          "package_name": "com.gig.trandsai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_MjmmK2_M4dyFSxGHTD2JNLwghSyTg2I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

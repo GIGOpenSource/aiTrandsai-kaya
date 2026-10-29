@@ -1,0 +1,451 @@
+page {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+/* 顶部光晕已统一到 AppPageShell --tab */
+
+/* 滚动时背景遮罩：仅毛玻璃，无黑底；透明 → 不透明过渡 */
+.header-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: transparent;
+}
+
+.header-backdrop::before {
+  display: none;
+}
+
+/* 毛玻璃：无黑底，仅 blur；mask 做透明 → 不透明过渡 */
+.header-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 35%,
+    rgba(0, 0, 0, 0.85) 70%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 35%,
+    rgba(0, 0, 0, 0.85) 70%,
+    #000 100%
+  );
+}
+
+.home-header {
+  position: relative;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--header-content-h, 116rpx); /* 稿 Frame 89：58 */
+  min-height: var(--header-content-h, 116rpx);
+  /* 左右 gutter 由 AppPageShell .app-header-inner 提供（设计 16pt），此处不再叠加 */
+  padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.header-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 24rpx; /* 页签间距约 12 */
+  height: 100%;
+}
+
+.tab-item {
+  font-size: var(--fs-title, 40rpx); /* 20pt */
+  color: var(--fg-muted, rgba(255, 255, 255, 0.6));
+  margin-right: 0;
+  position: relative;
+  line-height: 1;
+  font-weight: 500; /* 固定字重，避免选中切换改行高 */
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  gap: 6rpx; /* 选中条贴近文字 */
+
+  /* 预留指示条高度，切换时文字不跳动 */
+  &::after {
+    content: "";
+    width: 64rpx; /* 32 */
+    height: 6rpx; /* 3 */
+    flex-shrink: 0;
+    border-radius: 4rpx;
+    background: transparent;
+  }
+
+  &.active {
+    color: var(--fg);
+
+    &::after {
+      background: var(--tab-underline, var(--gradient-brand, linear-gradient(171.6deg, #FF659B 14.65%, #B933E6 114.9%)));
+    }
+  }
+}
+
+.page-title {
+  font-size: var(--fs-title, 40rpx);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.header-actions {
+  gap: 8rpx;
+}
+
+.refreshing-hint {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.icon-btn {
+  position: relative;
+  width: 56rpx; /* 视觉 28 */
+  height: 56rpx;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 扩大热区至约 44pt，不改图标视觉尺寸 */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -16rpx;
+  }
+}
+
+.notif-icon {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.unread-dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 16rpx; /* 8 */
+  height: 16rpx;
+  border-radius: 50%;
+  // background: #ff3b30;
+}
+
+.home-body {
+  flex: 1;
+  height: 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+}
+
+.home-tab-spacer {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* u-loadmore 底部加载提示样式 */
+:deep(.u-loadmore) {
+  padding: 32rpx 20rpx 48rpx;
+  color: var(--fg-muted);
+}
+
+.home-feed-loadmore {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 24rpx 32rpx 8rpx;
+  min-height: 72rpx;
+}
+
+.home-feed-loadmore--nomore {
+  padding-bottom: 16rpx;
+}
+
+.home-feed-loadmore-text {
+  font-size: 24rpx;
+  color: var(--fg-muted);
+}
+
+/* 稿面 Frame 46：py16、头像 62、间距 16、名字 12 */
+.strip-wrap {
+  padding: 32rpx 0 24rpx; /* 顶 16；底约 12 接到帖卡 */
+}
+
+.companion-strip {
+  white-space: nowrap;
+  box-sizing: border-box;
+  width: 100%;
+  /* 头像条允许横向滑，覆盖父级 pan-y */
+  touch-action: pan-x;
+}
+
+.strip-row {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 32rpx; /* 16 */
+  padding: 0 var(--page-gutter, 32rpx); /* 设计 16pt */
+}
+
+.strip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 124rpx; /* 62 */
+  margin-right: 0;
+  gap: 16rpx; /* 8 */
+}
+
+.strip-create {
+  display: flex;
+  width: 124rpx;
+  height: 124rpx;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: var(--bg-active, rgba(255, 255, 255, 0.1));
+  border: 1rpx solid var(--border-soft, rgba(255, 255, 255, 0.05));
+}
+
+.add-img {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.strip-avatar :deep(.avatar-root) {
+  width: 124rpx;
+  height: 124rpx;
+  border-radius: 50%;
+  border: none;
+  box-sizing: border-box;
+}
+
+.strip-name {
+  font-size: 24rpx; /* 12：与帖卡赞/评数字同级 */
+  margin-top: 0;
+  max-width: 124rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--fg);
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.empty {
+  text-align: center;
+  font-size: 26rpx;
+  padding: 80rpx var(--page-gutter, 32rpx);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+}
+.empty-retry {
+  color: var(--fg);
+  font-size: 28rpx;
+  font-weight: 500;
+  text-decoration: underline;
+  padding: 16rpx 32rpx;
+}
+
+/* 朋友圈卡片：左右 16pt、卡间距 12 */
+.home-moment-card {
+  margin: 0 var(--page-gutter, 32rpx) 24rpx;
+}
+
+.companion-filter-row {
+  display: flex;
+  align-items: center;
+  padding: 8rpx var(--page-gutter, 32rpx) 20rpx;
+  gap: 24rpx;
+}
+
+.companion-filter-chip {
+  padding: 20rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: var(--fs-row-title, 32rpx);
+  color: var(--fg-muted, rgba(255, 255, 255, 0.6));
+  background: transparent;
+  margin-right: 0;
+
+  &.active {
+    background: var(--bg-active, rgba(255, 255, 255, 0.1));
+    color: var(--fg, #fff);
+    font-weight: 500;
+  }
+}
+
+.companion-list {
+  padding: 0 var(--page-gutter, 32rpx) 24rpx;
+}
+
+.footer-hint {
+  text-align: center;
+  font-size: 26rpx;
+  padding: 32rpx 20rpx 48rpx;
+
+  .no-more {
+    font-size: 22rpx;
+  }
+}
+
+.back-to-top {
+  position: fixed;
+  right: 32rpx;
+  /* 完整底栏高度（含安全区）之上再留间距，避免贴住「我的」 */
+  bottom: calc(var(--app-tab-bar, var(--safe-tab)) + 64rpx);
+  z-index: 40;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  font-size: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--modal-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.3);
+  color: var(--fg);
+}
+
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-sheet {
+  width: 100%;
+  max-width: 672px;
+  background: var(--modal-bg);
+  border-radius: 32rpx 32rpx 0 0;
+  padding-bottom: calc(var(--safe-tab) + 24rpx);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.modal-close {
+  font-size: 36rpx;
+  color: var(--fg-muted);
+  padding: 8rpx;
+}
+
+.modal-body {
+  padding: 32rpx;
+}
+
+.filter-group {
+  margin-bottom: 32rpx;
+}
+
+.filter-label {
+  display: block;
+  font-size: 24rpx;
+  margin-bottom: 12rpx;
+  color: var(--fg-muted);
+}
+
+.filter-select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 24rpx;
+  font-size: 28rpx;
+  color: var(--fg);
+  padding: 20rpx 28rpx;
+}
+
+.filter-footer {
+  display: flex;
+  margin-top: 16rpx;
+}
+
+.filter-btn {
+  flex: 1;
+  text-align: center;
+  border-radius: 24rpx;
+  font-size: 28rpx;
+  padding: 22rpx 0;
+  margin-right: 20rpx;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  &.reset {
+    background: var(--bg-input);
+    color: var(--fg);
+  }
+
+  &.apply {
+    background: var(--gradient-brand);
+    color: #fff;
+  }
+}

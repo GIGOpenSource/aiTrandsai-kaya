@@ -1,0 +1,9 @@
+{
+	"minSdkVersion": "24",
+	"dependencies": [
+		{
+			"id": "trands-attribution-android-deps",
+			"source": "implementation('com.google.android.gms:play-services-ads-identifier:18.1.0') { exclude group: 'androidx.core', module: 'core' }\nimplementation 'com.android.installreferrer:installreferrer:2.2'\n}\nconfigurations.configureEach {\n  resolutionStrategy {\n    force 'androidx.core:core:1.13.1'\n    force 'androidx.core:core-ktx:1.13.1'\n  }\n}\ndependencies {\nimplementation 'androidx.core:core:1.13.1'\nimplementation 'androidx.core:core-ktx:1.13.1'"
+		}
+	]
+}

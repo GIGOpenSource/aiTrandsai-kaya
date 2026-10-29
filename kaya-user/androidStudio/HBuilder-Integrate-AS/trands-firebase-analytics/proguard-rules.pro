@@ -1,0 +1,2 @@
+-keep class uts.sdk.modules.trandsFirebaseAnalytics.** { *; }
+-keep class com.google.firebase.** { *; }

@@ -1,0 +1,174 @@
+/**
+ * Android Firebase Analytics（直接依赖 Firebase SDK）
+ *
+ * ✅ 云打包 / 自定义基座：用这个版本（已验证 login 能进 Firebase）
+ * ⚠️ 本地「运行到手机」可能报「找不到名称 firebase」：本机没有 Firebase classpath，
+ *    属正常现象。请忽略本地 UTS 编译报错，以已云打成功的自定义基座为准。
+ */
+import FirebaseApp from 'com.google.firebase.FirebaseApp'
+import FirebaseOptions from 'com.google.firebase.FirebaseOptions'
+import FirebaseAnalytics from 'com.google.firebase.analytics.FirebaseAnalytics'
+import Bundle from 'android.os.Bundle'
+import Context from 'android.content.Context'
+import Log from 'android.util.Log'
+import Double from 'java.lang.Double'
+import JSONObject from 'org.json.JSONObject'
+
+const TAG = 'TrandsFA'
+
+let analyticsInstance : FirebaseAnalytics | null = null
+let initTried = false
+
+function getContext() : Context | null {
+	return UTSAndroid.getAppContext()
+}
+
+function readStringRes(context : Context, name : string) : string | null {
+	try {
+		const resId = context.getResources().getIdentifier(name, 'string', context.getPackageName())
+		if (resId == 0) return null
+		return context.getString(resId)
+	} catch (e) {
+		return null
+	}
+}
+
+function buildOptions(context : Context) : FirebaseOptions | null {
+	const appId = readStringRes(context, 'google_app_id')
+	const apiKey = readStringRes(context, 'google_api_key')
+	const projectId = readStringRes(context, 'project_id')
+	if (appId == null || apiKey == null || projectId == null) {
+		Log.e(TAG, 'missing config.xml strings (google_app_id/api_key/project_id)')
+		console.warn('[trands-firebase-analytics] missing config.xml strings')
+		return null
+	}
+	const builder = new FirebaseOptions.Builder()
+		.setApplicationId(appId)
+		.setApiKey(apiKey)
+		.setProjectId(projectId)
+	const senderId = readStringRes(context, 'gcm_defaultSenderId')
+	if (senderId != null) {
+		builder.setGcmSenderId(senderId)
+	}
+	const bucket = readStringRes(context, 'google_storage_bucket')
+	if (bucket != null) {
+		builder.setStorageBucket(bucket)
+	}
+	return builder.build()
+}
+
+function ensureAnalytics() : FirebaseAnalytics | null {
+	if (analyticsInstance != null) return analyticsInstance
+	const context = getContext()
+	if (context == null) return null
+	if (!initTried) {
+		initTried = true
+		try {
+			if (FirebaseApp.getApps(context).isEmpty()) {
+				const options = buildOptions(context)
+				if (options != null) {
+					FirebaseApp.initializeApp(context, options)
+				} else {
+					FirebaseApp.initializeApp(context)
+				}
+			}
+		} catch (e) {
+			Log.e(TAG, 'initializeApp failed: ' + e)
+			console.warn('[trands-firebase-analytics] initializeApp failed', e)
+			try {
+				const options = buildOptions(context)
+				if (options != null) {
+					FirebaseApp.initializeApp(context, options)
+				}
+			} catch (e2) {
+				Log.e(TAG, 'retry initializeApp failed: ' + e2)
+				console.warn('[trands-firebase-analytics] retry initializeApp failed', e2)
+			}
+		}
+	}
+	try {
+		analyticsInstance = FirebaseAnalytics.getInstance(context)
+	} catch (e) {
+		Log.e(TAG, 'getInstance failed: ' + e)
+		console.warn('[trands-firebase-analytics] getInstance failed', e)
+		analyticsInstance = null
+	}
+	return analyticsInstance
+}
+
+function fillBundleFromJsonString(bundle : Bundle, raw : string) : void {
+	if (raw.length == 0 || raw == '{}' || raw == 'null') return
+	const json = new JSONObject(raw)
+	const it = json.keys()
+	while (it.hasNext()) {
+		const key = `${it.next()}`
+		if (key.length == 0 || json.isNull(key)) continue
+		const value = json.opt(key)
+		if (value == null) continue
+		const t = typeof value
+		if (t == 'string') {
+			bundle.putString(key, value as string)
+		} else if (t == 'boolean') {
+			bundle.putBoolean(key, value as boolean)
+		} else if (t == 'number') {
+			bundle.putDouble(key, Double.parseDouble(`${value}`))
+		} else {
+			bundle.putString(key, `${value}`)
+		}
+	}
+}
+
+export function configure() : boolean {
+	const ok = ensureAnalytics() != null
+	Log.i(TAG, 'configure => ' + ok)
+	console.log('[trands-firebase-analytics] configure => ' + ok)
+	return ok
+}
+
+export function logEvent(name : string, params : string | null = null) : void {
+	if (name.length == 0) return
+	const fa = ensureAnalytics()
+	if (fa == null) {
+		Log.e(TAG, 'logEvent skipped, analytics null: ' + name)
+		console.warn('[trands-firebase-analytics] logEvent skipped, analytics null: ' + name)
+		return
+	}
+	let bundle : Bundle | null = null
+	if (params != null && params.length > 0) {
+		try {
+			bundle = new Bundle()
+			fillBundleFromJsonString(bundle, params)
+		} catch (e) {
+			Log.w(TAG, 'fillBundle failed, send without params: ' + e)
+			console.warn('[trands-firebase-analytics] fillBundle failed, send without params', e)
+			bundle = null
+		}
+	}
+	try {
+		fa.logEvent(name, bundle)
+		Log.i(TAG, 'logEvent ok: ' + name)
+		console.log('[trands-firebase-analytics] logEvent ok: ' + name)
+	} catch (e) {
+		Log.e(TAG, 'logEvent failed: ' + name + ' err=' + e)
+		console.warn('[trands-firebase-analytics] logEvent failed: ' + name, e)
+	}
+}
+
+export function setUserId(userId : string | null) : void {
+	const fa = ensureAnalytics()
+	if (fa == null) return
+	fa.setUserId(userId)
+}
+
+export function setUserProperty(name : string, value : string | null) : void {
+	if (name.length == 0) return
+	const fa = ensureAnalytics()
+	if (fa == null) return
+	fa.setUserProperty(name, value)
+}
+
+export function setAnalyticsCollectionEnabled(enabled : boolean) : void {
+	const fa = ensureAnalytics()
+	if (fa == null) return
+	fa.setAnalyticsCollectionEnabled(enabled)
+}

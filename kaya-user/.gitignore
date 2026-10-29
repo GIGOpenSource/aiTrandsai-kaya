@@ -1,0 +1,79 @@
+# uni-app 编译产物
+unpackage/
+dist/
+
+# 依赖缓存
+node_modules/
+.vite
+package-lock.json
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.test
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Certificates and credentials
+apk/
+ios/**/*.p12
+ios/**/*.mobileprovision
+ios/**/*.cer
+ios/**/*.pem
+*.keystore
+*.jks
+
+# npm logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.temp/
+
+# Editor backups and files
+*.bak
+*.tmp
+
+# Chrome profile dumps (never ship)
+static/login/_chrome-acct/
+static/login/_chrome-acct2/
+
+# Android Studio / Gradle (offline integrate project)
+androidStudio/**/.gradle/
+androidStudio/**/.idea/
+androidStudio/**/build/
+androidStudio/**/local.properties
+androidStudio/**/*.iml
+androidStudio/**/*.apk
+androidStudio/**/*.aab
+androidStudio/**/release/
+androidStudio/**/.kotlin/
+
+# Xcode / DCloud iOS offline integrate project
+iosStudio/**/xcuserdata/
+iosStudio/**/DerivedData/
+iosStudio/**/build/
+iosStudio/**/Pods/
+iosStudio/**/Podfile.lock
+iosStudio/**/*.xcuserstate
+iosStudio/**/*.ipa
+iosStudio/**/*.dSYM/
+iosStudio/**/*.app
+iosStudio/**/*.xcarchive
+iosStudio/**/.generated/
+iosStudio/HBuilder-Hello/HBuilder-Hello/Pandora/apps/*/www/**
+!iosStudio/HBuilder-Hello/HBuilder-Hello/Pandora/apps/*/www/.gitkeep
+# 未启用的广告/地图等三方库不要整包拷进 SDK/Libs（完整官方 SDK 约 3.5GB）

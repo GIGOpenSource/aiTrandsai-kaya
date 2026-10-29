@@ -1,0 +1,26 @@
+/** Read advertising id info JSON: {"ad_id":"","ad_id_type":"gaid|idfa|none","limited":true} */
+export declare function getAdvertisingInfo() : string
+
+/** iOS identifierForVendor; empty on Android */
+export declare function getIdfv() : string
+
+/** Android Settings.Secure.ANDROID_ID; empty on iOS */
+export declare function getAndroidId() : string
+
+/** Android: start async Play Install Referrer fetch */
+export declare function prefetchInstallReferrer() : void
+
+/** Android: cached referrer string (may be empty until ready) */
+export declare function getInstallReferrer() : string
+
+/** Android: whether referrer fetch finished (success or failure) */
+export declare function isInstallReferrerReady() : boolean
+
+/** iOS: show ATT dialog if notDetermined; no-op on Android */
+export declare function requestTrackingAuthorization() : void
+
+/** iOS: authorized | denied | restricted | notDetermined | unknown */
+export declare function getTrackingAuthorizationStatus() : string
+
+/** iOS: poll result after requestTrackingAuthorization (empty if pending) */
+export declare function consumeTrackingAuthorizationResult() : string

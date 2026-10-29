@@ -1,0 +1,26 @@
+/**
+ * iOS App Store country via StoreKit 1 (iOS 13+ SKPaymentQueue.storefront).
+ *
+ * Apple countryCode is ISO 3166-1 alpha-3 (USA / HKG / JPN).
+ * JS converts it to alpha-2 before sending X-Storefront-Country.
+ *
+ * Do not use Locale.current.region.
+ */
+import { SKPaymentQueue } from 'StoreKit'
+
+export function fetchStorefrontCountryAlpha2() : string {
+	try {
+		const storefront = SKPaymentQueue.default().storefront
+		if (storefront == null) {
+			return ''
+		}
+		const code = storefront.countryCode
+		if (code == null || code.length == 0) {
+			return ''
+		}
+		return code
+	} catch (e) {
+		console.warn('[trands-storefront] fetch failed', e)
+		return ''
+	}
+}

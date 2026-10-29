@@ -1,0 +1,92 @@
+/**
+ * iOS: IDFA (ATT) + IDFV
+ *
+ * deploymentTarget 14.0
+ * 避免 Number()/rawValue/UUID! — 云打包 Swift 对这几项翻译不稳定。
+ */
+import { ATTrackingManager } from 'AppTrackingTransparency'
+import { ASIdentifierManager } from 'AdSupport'
+import { UIDevice } from 'UIKit'
+
+let pendingAuthStatus = ''
+
+function mapAuthStatus(status : ATTrackingManager.AuthorizationStatus) : string {
+	if (status == ATTrackingManager.AuthorizationStatus.authorized) return 'authorized'
+	if (status == ATTrackingManager.AuthorizationStatus.denied) return 'denied'
+	if (status == ATTrackingManager.AuthorizationStatus.restricted) return 'restricted'
+	if (status == ATTrackingManager.AuthorizationStatus.notDetermined) return 'notDetermined'
+	return 'unknown'
+}
+
+function buildAdInfoJson(adId : string, adType : string, limited : boolean) : string {
+	if (adId.length > 0 && adId != '00000000-0000-0000-0000-000000000000') {
+		return '{"ad_id":"' + adId + '","ad_id_type":"' + adType + '","limited":' + (limited ? 'true' : 'false') + '}'
+	}
+	return '{"ad_id":"","ad_id_type":"none","limited":true}'
+}
+
+export function getAdvertisingInfo() : string {
+	const status = ATTrackingManager.trackingAuthorizationStatus
+	if (status != ATTrackingManager.AuthorizationStatus.authorized) {
+		return buildAdInfoJson('', 'none', true)
+	}
+	try {
+		const manager = ASIdentifierManager.shared()
+		const idfa = manager.advertisingIdentifier.uuidString
+		return buildAdInfoJson(idfa, 'idfa', false)
+	} catch (e) {
+		console.warn('[trands-attribution] IDFA read failed', e)
+		return buildAdInfoJson('', 'none', true)
+	}
+}
+
+export function getIdfv() : string {
+	try {
+		const vendorId = UIDevice.current.identifierForVendor
+		const text = vendorId?.uuidString ?? ''
+		if (text.length == 0) {
+			return ''
+		}
+		return text
+	} catch (e) {
+		console.warn('[trands-attribution] IDFV read failed', e)
+		return ''
+	}
+}
+
+export function getAndroidId() : string {
+	return ''
+}
+
+export function prefetchInstallReferrer() : void {
+	/* iOS no-op */
+}
+
+export function getInstallReferrer() : string {
+	return ''
+}
+
+export function isInstallReferrerReady() : boolean {
+	return true
+}
+
+export function requestTrackingAuthorization() : void {
+	const current = ATTrackingManager.trackingAuthorizationStatus
+	if (current != ATTrackingManager.AuthorizationStatus.notDetermined) {
+		pendingAuthStatus = mapAuthStatus(current)
+		return
+	}
+	ATTrackingManager.requestTrackingAuthorization(completionHandler = (status) : void => {
+		pendingAuthStatus = mapAuthStatus(status)
+	})
+}
+
+export function getTrackingAuthorizationStatus() : string {
+	return mapAuthStatus(ATTrackingManager.trackingAuthorizationStatus)
+}
+
+export function consumeTrackingAuthorizationResult() : string {
+	const result = pendingAuthStatus
+	pendingAuthStatus = ''
+	return result
+}

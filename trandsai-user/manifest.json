@@ -1,0 +1,126 @@
+{
+    "name" : "Trands Ai",
+    "appid" : "__UNI__859C11F",
+    "description" : "AI女友",
+    "versionName" : "1.7.4",
+    "versionCode" : 174,
+    "transformPx" : false,
+    "app-plus" : {
+        "usingComponents" : true,
+        "nvueStyleCompiler" : "uni-app",
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : true,
+            "waiting" : false,
+            "autoclose" : true,
+            "delay" : 0
+        },
+        "modules" : {
+            "Camera" : {},
+            "OAuth" : {},
+            "Payment" : {}
+        },
+        "distribute" : {
+            "android" : {
+                "permissions" : [
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+                    "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
+                    "<uses-permission android:name=\"com.android.vending.BILLING\" />",
+                    "<uses-permission android:name=\"com.google.android.gms.permission.AD_ID\"/>",
+                    "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\" android:maxSdkVersion=\"32\"/>"
+                ],
+                "minSdkVersion" : 24,
+                "targetSdkVersion" : 36,
+                "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ]
+            },
+            "ios" : {
+                "dSYMs" : false,
+                "idfa" : false,
+                "privacyDescription" : {
+                    "NSPhotoLibraryUsageDescription" : "Access photo library to select photos for avatar upload and post publishing",
+                    "NSPhotoLibraryAddUsageDescription" : "Access photo library to save images",
+                    "NSCameraUsageDescription" : "Access camera to take photos for avatar upload and post publishing"
+                }
+            },
+            "sdkConfigs" : {
+                "oauth" : {
+                    "apple" : {},
+                    "google" : {
+                        "clientid" : "505895695411-hhb7i4too1rq58iquqfab9frb77vntaj.apps.googleusercontent.com"
+                    }
+                },
+                "payment" : {
+                    "appleiap" : {}
+                },
+                "statics" : {}
+            },
+            "icons" : {
+                "android" : {
+                    "hdpi" : "unpackage/res/icons/72x72.png",
+                    "xhdpi" : "unpackage/res/icons/96x96.png",
+                    "xxhdpi" : "unpackage/res/icons/144x144.png",
+                    "xxxhdpi" : "unpackage/res/icons/192x192.png"
+                },
+                "ios" : {
+                    "appstore" : "unpackage/res/icons/1024x1024.png",
+                    "ipad" : {
+                        "app" : "unpackage/res/icons/76x76.png",
+                        "app@2x" : "unpackage/res/icons/152x152.png",
+                        "notification" : "unpackage/res/icons/20x20.png",
+                        "notification@2x" : "unpackage/res/icons/40x40.png",
+                        "proapp@2x" : "unpackage/res/icons/167x167.png",
+                        "settings" : "unpackage/res/icons/29x29.png",
+                        "settings@2x" : "unpackage/res/icons/58x58.png",
+                        "spotlight" : "unpackage/res/icons/40x40.png",
+                        "spotlight@2x" : "unpackage/res/icons/80x80.png"
+                    },
+                    "iphone" : {
+                        "app@2x" : "unpackage/res/icons/120x120.png",
+                        "app@3x" : "unpackage/res/icons/180x180.png",
+                        "notification@2x" : "unpackage/res/icons/40x40.png",
+                        "notification@3x" : "unpackage/res/icons/60x60.png",
+                        "settings@2x" : "unpackage/res/icons/58x58.png",
+                        "settings@3x" : "unpackage/res/icons/87x87.png",
+                        "spotlight@2x" : "unpackage/res/icons/80x80.png",
+                        "spotlight@3x" : "unpackage/res/icons/120x120.png"
+                    }
+                }
+            },
+            "splashscreen" : {
+                "androidStyle" : "common",
+                "iosStyle" : "common",
+                "androidNavigationBarColor" : "#1A100C",
+                "ios" : {
+                    "storyboard" : "CustomStoryboard.zip"
+                },
+                "android" : {
+                    "hdpi" : "static/apk/480_762.png",
+                    "xhdpi" : "static/apk/720_1242.png",
+                    "xxhdpi" : "static/apk/1080_1882.png"
+                }
+            }
+        },
+        "statusbar" : {
+            "immersed" : true,
+            "style" : "light"
+        }
+    },
+    "h5" : {
+        "title" : "Trands Ai",
+        "router" : {
+            "mode" : "history",
+            "base" : "/"
+        },
+        "devServer" : {
+            "port" : 5173
+        }
+    },
+    "mp-weixin" : {
+        "appid" : "",
+        "setting" : {
+            "urlCheck" : false
+        }
+    },
+    "vueVersion" : "3"
+}

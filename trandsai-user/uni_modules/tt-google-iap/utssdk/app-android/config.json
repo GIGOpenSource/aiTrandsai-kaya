@@ -1,0 +1,9 @@
+{
+  "minSdkVersion": "24",
+  "dependencies": [
+    {
+      "id": "com.android.billingclient:billing",
+      "source": "implementation('com.android.billingclient:billing:9.1.0') { exclude group: 'com.google.android.gms', module: 'play-services-places-placereport' }\n}\nconfigurations.configureEach { exclude group: 'com.google.android.gms', module: 'play-services-places-placereport' }\ndependencies {\nimplementation 'androidx.core:core:1.13.1'"
+    }
+  ]
+}

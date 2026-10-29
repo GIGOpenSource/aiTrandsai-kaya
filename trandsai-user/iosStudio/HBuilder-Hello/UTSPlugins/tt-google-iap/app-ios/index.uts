@@ -1,0 +1,31 @@
+/**
+ * iOS placeholder: Android billing plugin only.
+ * Empty stubs so cloud build has an app-ios target.
+ * iOS purchases must use Apple IAP — do not call this module.
+ */
+
+export class TTGoogleIAP {
+  connect(_options : UTSJSONObject | null = null) : void {
+    // no-op on iOS
+  }
+
+  isReady() : boolean {
+    return false
+  }
+
+  queryProductDetails(_options : UTSJSONObject | null = null) : void {
+    // no-op on iOS
+  }
+
+  launchBillingFlow(_options : UTSJSONObject | null = null) : void {
+    // no-op on iOS
+  }
+
+  onPurchasesUpdated(_callback : ((result : any) => void) | null) : void {
+    // no-op on iOS
+  }
+}
+
+export function getTTGoogleIAP() : TTGoogleIAP {
+  return new TTGoogleIAP()
+}

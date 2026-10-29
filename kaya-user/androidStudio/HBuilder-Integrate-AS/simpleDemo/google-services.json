@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "19171325459",
+    "project_id": "kaya-3e740",
+    "storage_bucket": "kaya-3e740.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:19171325459:android:436d78e33be1faf22471e6",
+        "android_client_info": {
+          "package_name": "com.gig.kaya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLGdV6J5rCUUPYaBh_LJpZhyImI6EBLa0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,10 @@
+/**
+ * App Store storefront country (StoreKit 1 SKStorefront).
+ * Apple returns ISO 3166-1 alpha-3 (USA / HKG). Convert to alpha-2 in JS.
+ */
+
+/**
+ * Current App Store country code, or empty when unavailable.
+ * Do not use Locale.current.region as a substitute.
+ */
+export declare function fetchStorefrontCountryAlpha2() : string

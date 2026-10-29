@@ -1,0 +1,41 @@
+/**
+ * iOS stub — Google Play Billing is Android-only.
+ * Signatures match Android JSON-string + top-level callback API.
+ */
+
+type IapSuccess = (result : string) => void
+type IapFail = (error : string) => void
+
+function failCb(fail : IapFail | null, message : string) : void {
+	if (fail == null) return
+	// iOS 云打包：JSON.stringify 译成 String?，fail 要求非可选 String
+	const err : string = '{"errCode":9011003,"errMsg":"' + message + '","billingResponseCode":null,"subResponseCode":null,"debugMessage":"' + message + '"}'
+	try {
+		fail(err)
+	} catch (e) {}
+}
+
+export function connect(_optionsJson : string, _success : IapSuccess, fail : IapFail) : void {
+	console.warn('[trands-google-iap] iOS stub: connect unsupported')
+	failCb(fail, 'Google Play IAP is not available on iOS')
+}
+
+export function isReady() : boolean {
+	return false
+}
+
+export function getBillingConfig(_success : IapSuccess, fail : IapFail) : void {
+	failCb(fail, 'Google Play IAP is not available on iOS')
+}
+
+export function queryProductDetails(_productsJson : string, _success : IapSuccess, fail : IapFail) : void {
+	failCb(fail, 'Google Play IAP is not available on iOS')
+}
+
+export function launchBillingFlow(_payloadJson : string, _success : IapSuccess, fail : IapFail) : void {
+	failCb(fail, 'Google Play IAP is not available on iOS')
+}
+
+export function onPurchasesUpdated(_callback : (result : string) => void) : void {
+	console.warn('[trands-google-iap] iOS stub: onPurchasesUpdated no-op')
+}

@@ -1,0 +1,628 @@
+/**
+ * Android Google Play Billing 9 — JSON-string + top-level callback exports.
+ * Matches offline IndexKt *ByJs signatures for HBuilder / cloud packaging.
+ * Log tag: TrandsIAP
+ *
+ * UTS→Kotlin notes:
+ * - Java List/Map 的 size()/keySet() 在 Kotlin 侧是属性 size / keys，不能加 ()
+ * - get(i) / getJSONObject(i) 下标必须是 Int，for 循环请写 let i: Int
+ * - PurchasesUpdatedListener 第二参是 MutableList
+ */
+import BillingClient from 'com.android.billingclient.api.BillingClient'
+import BillingClientStateListener from 'com.android.billingclient.api.BillingClientStateListener'
+import BillingResult from 'com.android.billingclient.api.BillingResult'
+import PendingPurchasesParams from 'com.android.billingclient.api.PendingPurchasesParams'
+import PurchasesUpdatedListener from 'com.android.billingclient.api.PurchasesUpdatedListener'
+import Purchase from 'com.android.billingclient.api.Purchase'
+import QueryProductDetailsParams from 'com.android.billingclient.api.QueryProductDetailsParams'
+import ProductDetails from 'com.android.billingclient.api.ProductDetails'
+import ProductDetailsResponseListener from 'com.android.billingclient.api.ProductDetailsResponseListener'
+import QueryProductDetailsResult from 'com.android.billingclient.api.QueryProductDetailsResult'
+import BillingFlowParams from 'com.android.billingclient.api.BillingFlowParams'
+import GetBillingConfigParams from 'com.android.billingclient.api.GetBillingConfigParams'
+import BillingConfigResponseListener from 'com.android.billingclient.api.BillingConfigResponseListener'
+import BillingConfig from 'com.android.billingclient.api.BillingConfig'
+import Activity from 'android.app.Activity'
+import Context from 'android.content.Context'
+import Handler from 'android.os.Handler'
+import Looper from 'android.os.Looper'
+import Log from 'android.util.Log'
+import HashMap from 'java.util.HashMap'
+import ArrayList from 'java.util.ArrayList'
+import MutableList from 'kotlin.collections.MutableList'
+import JSONObject from 'org.json.JSONObject'
+import JSONArray from 'org.json.JSONArray'
+import SimpleJSCallback from 'com.taobao.weex.bridge.SimpleJSCallback'
+import WeexInstanceMgr from 'io.dcloud.feature.weex.WeexInstanceMgr'
+import UTSCallback from 'io.dcloud.uts.UTSCallback'
+
+const TAG = 'TrandsIAP'
+const ERR_INVALID = 9011001
+const ERR_NOT_READY = 9011002
+const ERR_BILLING = 9011009
+
+type IapSuccess = (result : string) => void
+type IapFail = (error : string) => void
+/** ByJs may deliver UTSCallback, a JS function, or a raw Integer callback id. */
+type IapCb = any | null
+
+let billingClient : BillingClient | null = null
+let connecting = false
+const productCache = new HashMap<string, ProductDetails>()
+let purchasesUpdatedCb : IapCb = null
+
+function getContext() : Context | null {
+	return UTSAndroid.getAppContext()
+}
+
+function getActivity() : Activity | null {
+	try {
+		const act = UTSAndroid.getUniActivity()
+		if (act != null) return act
+	} catch (e) {}
+	try {
+		return UTSAndroid.getTopPageActivity()
+	} catch (e2) {
+		return null
+	}
+}
+
+function cacheKey(productId : string, productType : string) : string {
+	return productId + '|' + productType
+}
+
+const mainHandler = new Handler(Looper.getMainLooper())
+
+function resolveWeexInstanceId() : string | null {
+	// 云打包 UTS→Kotlin 下勿用 Map.size()/keySet()；预实例 id 足够覆盖 ByJs 回调 id 场景
+	try {
+		const pre = WeexInstanceMgr.self().getPreInstanceId()
+		if (pre != null && pre.length > 0) return pre
+	} catch (e) {}
+	return null
+}
+
+/**
+ * Invoke JS callback with a plain JSON string.
+ * Handles UTSCallback, callable, or raw Integer callback id from the uni-app/UTS bridge.
+ */
+function invokeCb(cb : IapCb, jsonString : string, keepAlive : boolean = false) : void {
+	if (cb == null) return
+	const preview = jsonString.length > 200 ? jsonString.substring(0, 200) : jsonString
+	const run = () : void => {
+		try {
+			let className = '?'
+			try {
+				className = UTSAndroid.getJavaClass(cb).getName()
+			} catch (e0) {}
+			Log.i(TAG, 'invokeCb class=' + className + ' json=' + preview)
+			if (cb instanceof UTSCallback) {
+				const utsCb = cb as UTSCallback
+				Log.i(TAG, 'invokeCb via UTSCallback')
+				utsCb.invoke(jsonString)
+				return
+			}
+			// Raw JS callback id (java.lang.Integer) from ByJs bridge
+			const t = UTSAndroid.typeof(cb)
+			if (t == 'number') {
+				const id = parseInt('' + cb)
+				const instanceId = resolveWeexInstanceId()
+				if (instanceId == null || instanceId.length == 0) {
+					Log.e(TAG, 'invokeCb: no weex instance for callbackId=' + id)
+					return
+				}
+				const jsCb = new SimpleJSCallback(instanceId, '' + id)
+				Log.i(TAG, 'invokeCb via callbackId=' + id)
+				if (keepAlive) {
+					jsCb.invokeAndKeepAlive(jsonString)
+				} else {
+					jsCb.invoke(jsonString)
+				}
+				return
+			}
+			// Compiled UTS function / Function1
+			;(cb as IapSuccess)(jsonString)
+		} catch (e) {
+			Log.e(TAG, 'callback failed: ' + e)
+		}
+	}
+	if (Looper.myLooper() == Looper.getMainLooper()) {
+		run()
+	} else {
+		mainHandler.post(run)
+	}
+}
+
+function failJson(errCode : number, billingResponseCode : number | null, debugMessage : string | null) : string {
+	const o = new JSONObject()
+	o.put('errCode', errCode)
+	o.put('errMsg', debugMessage != null ? debugMessage : '')
+	if (billingResponseCode != null) {
+		o.put('billingResponseCode', billingResponseCode)
+	} else {
+		o.put('billingResponseCode', JSONObject.NULL)
+	}
+	o.put('subResponseCode', JSONObject.NULL)
+	o.put('debugMessage', debugMessage != null ? debugMessage : '')
+	return o.toString()
+}
+
+function callFail(fail : IapCb, errCode : number, billingResponseCode : number | null, debugMessage : string | null) : void {
+	if (fail == null) return
+	invokeCb(fail, failJson(errCode, billingResponseCode, debugMessage))
+}
+
+function callSuccess(success : IapCb, json : string) : void {
+	invokeCb(success, json)
+}
+
+function mapPurchaseState(code : number) : string {
+	if (code == Purchase.PurchaseState.PURCHASED) return 'purchased'
+	if (code == Purchase.PurchaseState.PENDING) return 'pending'
+	return 'unspecified'
+}
+
+function purchaseToJson(p : Purchase) : JSONObject {
+	const o = new JSONObject()
+	o.put('orderId', p.getOrderId())
+	o.put('packageName', p.getPackageName())
+	const productsArr = new JSONArray()
+	const products = p.getProducts()
+	if (products != null) {
+		const n = products.size
+		for (let i : Int = 0; i < n; i++) {
+			productsArr.put(products.get(i)!)
+		}
+	}
+	o.put('products', productsArr)
+	o.put('purchaseTime', p.getPurchaseTime())
+	o.put('purchaseToken', p.getPurchaseToken())
+	o.put('quantity', p.getQuantity())
+	const stateCode = p.getPurchaseState()
+	o.put('purchaseStateCode', stateCode)
+	o.put('purchaseState', mapPurchaseState(stateCode))
+	o.put('isAcknowledged', p.isAcknowledged())
+	o.put('isAutoRenewing', p.isAutoRenewing())
+	o.put('isSuspended', p.isSuspended())
+	o.put('originalJson', p.getOriginalJson())
+	o.put('signature', p.getSignature())
+	return o
+}
+
+function mapPurchases(list : MutableList<Purchase> | null) : JSONArray {
+	const arr = new JSONArray()
+	if (list == null) return arr
+	const n = list.size
+	for (let i : Int = 0; i < n; i++) {
+		arr.put(purchaseToJson(list.get(i)!))
+	}
+	return arr
+}
+
+function safeOfferToken(getter : () => string | null) : string | null {
+	try {
+		return getter()
+	} catch (e) {
+		Log.w(TAG, 'getOfferToken failed: ' + e)
+		return null
+	}
+}
+
+function oneTimeOfferToJson(offer : ProductDetails.OneTimePurchaseOfferDetails) : JSONObject {
+	const o = new JSONObject()
+	o.put('formattedPrice', offer.getFormattedPrice())
+	o.put('priceAmountMicros', offer.getPriceAmountMicros())
+	o.put('priceCurrencyCode', offer.getPriceCurrencyCode())
+	const token = safeOfferToken(() : string | null => {
+		return offer.getOfferToken()
+	})
+	if (token != null) {
+		o.put('offerToken', token)
+	} else {
+		o.put('offerToken', JSONObject.NULL)
+	}
+	const offerId = offer.getOfferId()
+	if (offerId != null) {
+		o.put('offerId', offerId)
+	} else {
+		o.put('offerId', JSONObject.NULL)
+	}
+	try {
+		const poi = offer.getPurchaseOptionId()
+		if (poi != null) {
+			o.put('purchaseOptionId', poi)
+		} else {
+			o.put('purchaseOptionId', JSONObject.NULL)
+		}
+	} catch (e) {
+		Log.w(TAG, 'purchaseOptionId omitted: ' + e)
+	}
+	return o
+}
+
+function subOfferToJson(offer : ProductDetails.SubscriptionOfferDetails) : JSONObject {
+	const o = new JSONObject()
+	o.put('basePlanId', offer.getBasePlanId())
+	const offerId = offer.getOfferId()
+	if (offerId != null) {
+		o.put('offerId', offerId)
+	} else {
+		o.put('offerId', JSONObject.NULL)
+	}
+	const token = safeOfferToken(() : string | null => {
+		return offer.getOfferToken()
+	})
+	if (token != null) {
+		o.put('offerToken', token)
+	} else {
+		o.put('offerToken', JSONObject.NULL)
+	}
+	return o
+}
+
+function productDetailsToJson(pd : ProductDetails) : JSONObject {
+	const o = new JSONObject()
+	o.put('productId', pd.getProductId())
+	o.put('productType', pd.getProductType())
+	o.put('title', pd.getTitle())
+	o.put('name', pd.getName())
+	o.put('description', pd.getDescription())
+	o.put('queriedAt', Date.now())
+
+	const oneTimeArr = new JSONArray()
+	const oneList = pd.getOneTimePurchaseOfferDetailsList()
+	if (oneList != null && oneList.size > 0) {
+		const n = oneList.size
+		for (let i : Int = 0; i < n; i++) {
+			oneTimeArr.put(oneTimeOfferToJson(oneList.get(i)!))
+		}
+	} else {
+		const single = pd.getOneTimePurchaseOfferDetails()
+		if (single != null) {
+			oneTimeArr.put(oneTimeOfferToJson(single))
+		}
+	}
+	o.put('oneTimePurchaseOffers', oneTimeArr)
+
+	const subArr = new JSONArray()
+	const subList = pd.getSubscriptionOfferDetails()
+	if (subList != null) {
+		const n = subList.size
+		for (let i : Int = 0; i < n; i++) {
+			subArr.put(subOfferToJson(subList.get(i)!))
+		}
+	}
+	o.put('subscriptionOffers', subArr)
+	return o
+}
+
+class TrandsPurchasesUpdatedListener implements PurchasesUpdatedListener {
+	override onPurchasesUpdated(billingResult : BillingResult, purchases : MutableList<Purchase> | null) : void {
+		const responseCode = billingResult.getResponseCode()
+		const debugMessage = billingResult.getDebugMessage()
+		Log.i(TAG, 'onPurchasesUpdated code=' + responseCode + ' msg=' + debugMessage)
+		const result = new JSONObject()
+		result.put('responseCode', responseCode)
+		result.put('subResponseCode', billingResult.getOnPurchasesUpdatedSubResponseCode())
+		result.put('debugMessage', debugMessage != null ? debugMessage : '')
+		result.put('purchases', mapPurchases(purchases))
+		invokeCb(purchasesUpdatedCb, result.toString(), true)
+	}
+}
+
+class TrandsBillingStateListener implements BillingClientStateListener {
+	private success : IapCb
+	private fail : IapCb
+	constructor(success : IapCb, fail : IapCb) {
+		this.success = success
+		this.fail = fail
+	}
+	override onBillingSetupFinished(billingResult : BillingResult) : void {
+		connecting = false
+		const code = billingResult.getResponseCode()
+		const msg = billingResult.getDebugMessage()
+		Log.i(TAG, 'onBillingSetupFinished code=' + code + ' msg=' + msg)
+		if (code == BillingClient.BillingResponseCode.OK) {
+			const ok = new JSONObject()
+			ok.put('connectionState', 'connected')
+			callSuccess(this.success, ok.toString())
+		} else {
+			callFail(this.fail, ERR_BILLING, code, msg)
+		}
+	}
+	override onBillingServiceDisconnected() : void {
+		Log.w(TAG, 'onBillingServiceDisconnected')
+	}
+}
+
+class TrandsProductDetailsListener implements ProductDetailsResponseListener {
+	private success : IapCb
+	private fail : IapCb
+	constructor(success : IapCb, fail : IapCb) {
+		this.success = success
+		this.fail = fail
+	}
+	override onProductDetailsResponse(billingResult : BillingResult, result : QueryProductDetailsResult) : void {
+		const code = billingResult.getResponseCode()
+		const msg = billingResult.getDebugMessage()
+		Log.i(TAG, 'queryProductDetails code=' + code)
+		if (code != BillingClient.BillingResponseCode.OK) {
+			callFail(this.fail, ERR_BILLING, code, msg)
+			return
+		}
+		try {
+			const productsArr = new JSONArray()
+			const productIds = new ArrayList<string>()
+			const list = result.getProductDetailsList()
+			if (list != null) {
+				const n = list.size
+				for (let i : Int = 0; i < n; i++) {
+					const pd = list.get(i)!
+					productCache.put(cacheKey(pd.getProductId(), pd.getProductType()), pd)
+					productsArr.put(productDetailsToJson(pd))
+					productIds.add(pd.getProductId())
+				}
+			}
+			const unfetchedArr = new JSONArray()
+			const unfetched = result.getUnfetchedProductList()
+			if (unfetched != null) {
+				const n = unfetched.size
+				for (let i : Int = 0; i < n; i++) {
+					const u = unfetched.get(i)!
+					const uo = new JSONObject()
+					uo.put('productId', u.getProductId())
+					uo.put('productType', u.getProductType())
+					uo.put('statusCode', u.getStatusCode())
+					unfetchedArr.put(uo)
+					productCache.remove(cacheKey(u.getProductId(), u.getProductType()))
+				}
+			}
+			Log.i(TAG, 'queryProductDetails OK productCount=' + productsArr.length() +
+				' unfetchedCount=' + unfetchedArr.length() +
+				' successCbNull=' + (this.success == null) +
+				' productIds=' + productIds.toString())
+			if (productsArr.length() == 0) {
+				Log.w(TAG, 'queryProductDetails code=0 but products empty; still callSuccess')
+			}
+			const out = new JSONObject()
+			out.put('products', productsArr)
+			out.put('unfetchedProducts', unfetchedArr)
+			callSuccess(this.success, out.toString())
+		} catch (e) {
+			Log.e(TAG, 'queryProductDetails mapping failed: ' + e)
+			callFail(this.fail, ERR_BILLING, code, '' + e)
+		}
+	}
+}
+
+class TrandsBillingConfigListener implements BillingConfigResponseListener {
+	private success : IapCb
+	private fail : IapCb
+	constructor(success : IapCb, fail : IapCb) {
+		this.success = success
+		this.fail = fail
+	}
+	override onBillingConfigResponse(billingResult : BillingResult, billingConfig : BillingConfig | null) : void {
+		const code = billingResult.getResponseCode()
+		const msg = billingResult.getDebugMessage()
+		Log.i(TAG, 'getBillingConfig code=' + code)
+		if (code != BillingClient.BillingResponseCode.OK || billingConfig == null) {
+			callFail(this.fail, ERR_BILLING, code, msg)
+			return
+		}
+		const out = new JSONObject()
+		out.put('countryCode', billingConfig.getCountryCode())
+		callSuccess(this.success, out.toString())
+	}
+}
+
+export function isReady() : boolean {
+	try {
+		const c = billingClient
+		if (c == null) return false
+		return c.isReady()
+	} catch (e) {
+		return false
+	}
+}
+
+export function connect(optionsJson : string, success : IapCb, fail : IapCb) : void {
+	Log.i(TAG, 'connect')
+	let enableAuto = true
+	let enablePrepaid = true
+	if (optionsJson != null && optionsJson.length > 0) {
+		try {
+			const o = new JSONObject(optionsJson)
+			enableAuto = o.optBoolean('enableAutoServiceReconnection', true)
+			enablePrepaid = o.optBoolean('enablePrepaidPlans', true)
+		} catch (e) {
+			Log.w(TAG, 'connect parse optionsJson: ' + e)
+		}
+	}
+	if (isReady()) {
+		const ok = new JSONObject()
+		ok.put('connectionState', 'connected')
+		callSuccess(success, ok.toString())
+		return
+	}
+	if (connecting && billingClient != null) {
+		Log.i(TAG, 'connect already in progress')
+		return
+	}
+	const context = getContext()
+	if (context == null) {
+		callFail(fail, ERR_INVALID, null, 'no app context')
+		return
+	}
+
+	const pendingBuilder = PendingPurchasesParams.newBuilder().enableOneTimeProducts()
+	if (enablePrepaid) {
+		pendingBuilder.enablePrepaidPlans()
+	}
+	const pendingParams = pendingBuilder.build()
+
+	const builder = BillingClient.newBuilder(context)
+		.setListener(new TrandsPurchasesUpdatedListener())
+		.enablePendingPurchases(pendingParams)
+	if (enableAuto) {
+		builder.enableAutoServiceReconnection()
+	}
+
+	try {
+		if (billingClient != null) {
+			try {
+				billingClient!.endConnection()
+			} catch (e) {}
+		}
+		billingClient = builder.build()
+		connecting = true
+		billingClient!.startConnection(new TrandsBillingStateListener(success, fail))
+	} catch (e) {
+		connecting = false
+		Log.e(TAG, 'connect failed: ' + e)
+		callFail(fail, ERR_BILLING, null, '' + e)
+	}
+}
+
+export function getBillingConfig(success : IapCb, fail : IapCb) : void {
+	const c = billingClient
+	if (c == null || !c.isReady()) {
+		callFail(fail, ERR_NOT_READY, null, 'billing not ready')
+		return
+	}
+	try {
+		c.getBillingConfigAsync(GetBillingConfigParams.newBuilder().build(), new TrandsBillingConfigListener(success, fail))
+	} catch (e) {
+		callFail(fail, ERR_BILLING, null, '' + e)
+	}
+}
+
+export function queryProductDetails(productsJson : string, success : IapCb, fail : IapCb) : void {
+	const c = billingClient
+	if (c == null || !c.isReady()) {
+		callFail(fail, ERR_NOT_READY, null, 'billing not ready')
+		return
+	}
+	let products : JSONArray
+	try {
+		products = new JSONArray(productsJson)
+	} catch (e) {
+		callFail(fail, ERR_INVALID, null, 'invalid productsJson: ' + e)
+		return
+	}
+	if (products.length() == 0) {
+		callFail(fail, ERR_INVALID, null, 'products required')
+		return
+	}
+	try {
+		const productList = new ArrayList<QueryProductDetailsParams.Product>()
+		const n = products.length()
+		for (let i : Int = 0; i < n; i++) {
+			const item = products.getJSONObject(i)
+			const productId = item.optString('productId', '')
+			const productType = item.optString('productType', '')
+			if (productId.length == 0 || productType.length == 0) {
+				callFail(fail, ERR_INVALID, null, 'invalid product entry')
+				return
+			}
+			const type = productType == 'subs' ? BillingClient.ProductType.SUBS : BillingClient.ProductType.INAPP
+			productList.add(
+				QueryProductDetailsParams.Product.newBuilder()
+					.setProductId(productId)
+					.setProductType(type)
+					.build()
+			)
+		}
+		const params = QueryProductDetailsParams.newBuilder().setProductList(productList).build()
+		c.queryProductDetailsAsync(params, new TrandsProductDetailsListener(success, fail))
+	} catch (e) {
+		Log.e(TAG, 'queryProductDetails failed: ' + e)
+		callFail(fail, ERR_BILLING, null, '' + e)
+	}
+}
+
+export function launchBillingFlow(payloadJson : string, success : IapCb, fail : IapCb) : void {
+	const c = billingClient
+	if (c == null || !c.isReady()) {
+		callFail(fail, ERR_NOT_READY, null, 'billing not ready')
+		return
+	}
+	const activity = getActivity()
+	if (activity == null) {
+		callFail(fail, ERR_INVALID, null, 'no activity')
+		return
+	}
+	let payload : JSONObject
+	try {
+		payload = new JSONObject(payloadJson)
+	} catch (e) {
+		callFail(fail, ERR_INVALID, null, 'invalid payloadJson: ' + e)
+		return
+	}
+	const items = payload.optJSONArray('items')
+	if (items == null || items.length() == 0) {
+		callFail(fail, ERR_INVALID, null, 'items required')
+		return
+	}
+	const productTypeHint = payload.optString('productType', '')
+	try {
+		const paramsList = new ArrayList<BillingFlowParams.ProductDetailsParams>()
+		const n = items.length()
+		for (let i : Int = 0; i < n; i++) {
+			const item = items.getJSONObject(i)
+			const productId = item.optString('productId', '')
+			if (productId.length == 0) {
+				callFail(fail, ERR_INVALID, null, 'productId required')
+				return
+			}
+			let pd : ProductDetails | null = null
+			if (productTypeHint.length > 0) {
+				pd = productCache.get(cacheKey(productId, productTypeHint == 'subs' ? BillingClient.ProductType.SUBS : BillingClient.ProductType.INAPP))
+			}
+			if (pd == null) {
+				pd = productCache.get(cacheKey(productId, BillingClient.ProductType.INAPP))
+			}
+			if (pd == null) {
+				pd = productCache.get(cacheKey(productId, BillingClient.ProductType.SUBS))
+			}
+			if (pd == null) {
+				callFail(fail, ERR_INVALID, null, 'product not cached, queryProductDetails first: ' + productId)
+				return
+			}
+			const offerToken = item.optString('offerToken', '')
+			const pdb = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(pd)
+			if (offerToken.length > 0) {
+				pdb.setOfferToken(offerToken)
+			}
+			paramsList.add(pdb.build())
+		}
+		const flowBuilder = BillingFlowParams.newBuilder().setProductDetailsParamsList(paramsList)
+		// 回调绑人：十进制 user_id 字符串（勿传 UUID/JSON）
+		const obfuscatedAccountId = payload.optString('obfuscatedAccountId', '')
+		if (obfuscatedAccountId.length > 0) {
+			flowBuilder.setObfuscatedAccountId(obfuscatedAccountId)
+			Log.i(TAG, 'launchBillingFlow obfuscatedAccountId len=' + obfuscatedAccountId.length)
+		}
+		const flowParams = flowBuilder.build()
+		const br = c.launchBillingFlow(activity, flowParams)
+		const code = br.getResponseCode()
+		const msg = br.getDebugMessage()
+		Log.i(TAG, 'launchBillingFlow code=' + code + ' msg=' + msg)
+		if (code == BillingClient.BillingResponseCode.OK) {
+			const out = new JSONObject()
+			out.put('responseCode', code)
+			out.put('debugMessage', msg != null ? msg : '')
+			callSuccess(success, out.toString())
+		} else {
+			callFail(fail, ERR_BILLING, code, msg)
+		}
+	} catch (e) {
+		Log.e(TAG, 'launchBillingFlow failed: ' + e)
+		callFail(fail, ERR_BILLING, null, '' + e)
+	}
+}
+
+export function onPurchasesUpdated(callback : IapCb) : void {
+	purchasesUpdatedCb = callback
+	Log.i(TAG, 'onPurchasesUpdated registered')
+}
