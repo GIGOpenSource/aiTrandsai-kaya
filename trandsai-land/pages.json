@@ -3,8 +3,10 @@
 		{
 			"path": "pages/index/index",
 			"style": {
+				"navigationStyle": "custom",
 				"enablePullDownRefresh": false,
-				"disableScroll": false
+				"disableScroll": true,
+				"backgroundColor": "#0b0b0c"
 			}
 		}
 	],

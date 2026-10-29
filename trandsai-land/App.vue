@@ -22,4 +22,10 @@ page {
 	background: #12111F !important;
 	color: #FFF;
 }
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
 </style>
